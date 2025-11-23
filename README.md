@@ -21,7 +21,7 @@ Django-приложение для координации работы пере�
 
 ```bash
 # Клонирование и настройка окружения
-git clone https://github.com/pradigmaz/translationhub.git
+git clone https://github.com/pradigmaz/Translation_Hub.git
 cd translationhub
 python -m venv venv
 venv\Scripts\activate  # Windows
@@ -78,11 +78,7 @@ translationhub/
 
 **Статусы глав:**
 ```
-RAW → Переводчик (параллельно) → Редактор (после Переводчика) → Тайпер → Релиз
-           ↓
-      Клиннер (параллельно)
-           
-       
+RAW → Переводчик (параллельно) → Редактор (после Переводчика) → Клиннер → Тайпер → Релиз
 ```
 
 ## Разработка
@@ -100,12 +96,6 @@ python manage.py collectstatic --noinput
 - `teams` - CRUD команд, роли, статусы, аудит
 - `projects` - проекты, workflow, доступ
 - `utils` - файловая система
-
-**Логи** (в .gitignore):
-- `logs/security.log` - безопасность и аутентификация
-- `logs/content_audit.log` - изменения контента
-- `logs/role_audit.log` - изменения ролей
-- `logs/file_operations.log` - файловые операции
 
 ## Продакшн
 
