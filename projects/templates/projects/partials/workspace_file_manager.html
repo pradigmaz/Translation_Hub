@@ -1,0 +1,457 @@
+{% load static %}
+
+<!-- Файловый менеджер для workspace (одна глава) -->
+<div class="card border-0 rounded-0 h-100">
+  <div class="card-header bg-light">
+    <h6 class="mb-0">
+      <i class="fas fa-folder me-2"></i>Файлы главы
+    </h6>
+  </div>
+  <div class="card-body p-0">
+    
+    <!-- Панель загрузки -->
+    <div id="file-upload-panel" class="p-3 border-bottom bg-light" style="display: none;">
+      <div class="mb-2">
+        <strong id="upload-folder-title">Загрузка файлов</strong>
+        <button type="button" class="btn-close btn-sm float-end" onclick="hideUploadPanel()"></button>
+      </div>
+      <form id="file-upload-form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" id="upload-folder" name="folder">
+        
+        <div class="mb-2">
+          <input type="file" class="form-control form-control-sm" id="file-input" name="file" 
+                 accept=".jpg,.jpeg,.png,.gif,.pdf,.txt,.doc,.docx,.zip,.rar" multiple>
+          <small class="text-muted d-block">
+            <i class="fas fa-info-circle me-1"></i>
+            Можно выбрать несколько файлов (Ctrl+Click или Shift+Click)
+          </small>
+          <small class="text-muted">Макс размер файла: 50MB</small>
+        </div>
+        
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fas fa-upload"></i> Загрузить
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="hideUploadPanel()">
+            Отмена
+          </button>
+        </div>
+        
+        <div id="upload-progress" class="mt-2" style="display: none;">
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+          </div>
+          <small class="text-muted" id="upload-status">Загрузка...</small>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Список папок -->
+    <div class="list-group list-group-flush">
+      {% for folder, files in files_by_folder.items %}
+      <div class="file-group">
+        <!-- Заголовок папки -->
+        <div class="group-header" onclick="toggleFileGroup(this)">
+          <div class="d-flex justify-content-between align-items-center w-100">
+            <span>
+              <i class="fas fa-chevron-down me-2 toggle-icon"></i>
+              <i class="fas fa-folder me-2"></i>{{ folder|upper }}
+              {% if folder == 'translation' %}
+                <small class="text-muted ms-2">(автосоздание)</small>
+              {% elif folder == 'editing' %}
+                <small class="text-muted ms-2">(только чтение)</small>
+              {% elif folder == 'final' %}
+                <small class="text-muted ms-2">(готовые файлы)</small>
+              {% endif %}
+            </span>
+            <div class="d-flex align-items-center gap-2">
+              <small class="text-muted">
+                <span class="file-count-{{ folder }}">{{ files|length }}</span>
+                <span class="selected-count-{{ folder }}" style="display: none;">
+                  (<span class="selected-num">0</span> выбрано)
+                </span>
+              </small>
+              {% if folder == 'raw' or folder == 'cleaning' or folder == 'typesetting' %}
+              <button class="btn btn-outline-secondary btn-sm select-all-btn" 
+                      data-folder="{{ folder }}"
+                      title="Выбрать все"
+                      onclick="event.stopPropagation(); toggleSelectAll('{{ folder }}')">
+                <i class="fas fa-check-square"></i>
+              </button>
+              <button class="btn btn-outline-danger btn-sm delete-selected-btn" 
+                      data-folder="{{ folder }}"
+                      style="display: none;"
+                      title="Удалить выбранные"
+                      onclick="event.stopPropagation(); deleteSelectedFiles('{{ folder }}')">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+              <button class="btn btn-outline-primary btn-sm upload-btn" 
+                      data-folder="{{ folder }}"
+                      title="Загрузить файлы"
+                      onclick="event.stopPropagation(); showUploadPanel('{{ folder }}', '{{ folder|upper }}')">
+                <i class="fas fa-upload"></i>
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        
+        <!-- Список файлов в папке -->
+        <div class="group-files">
+          {% if files %}
+            {% for file in files %}
+            <div class="file-item" 
+                 data-folder="{{ folder }}" 
+                 data-filename="{{ file.name }}"
+                 data-path="{{ file.path }}">
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2 flex-grow-1 text-truncate">
+                  {% if folder == 'raw' or folder == 'cleaning' or folder == 'typesetting' %}
+                  <input type="checkbox" 
+                         class="form-check-input file-checkbox" 
+                         data-folder="{{ folder }}"
+                         data-filename="{{ file.name }}"
+                         onclick="event.stopPropagation(); updateSelectionUI('{{ folder }}')">
+                  {% endif %}
+                  <span class="text-truncate">
+                    <i class="far fa-file me-1"></i>{{ file.name }}
+                  </span>
+                </div>
+                <div class="d-flex gap-1">
+                  <a href="{% url 'projects:download_file' project.pk chapter.pk folder file.name %}" 
+                     class="btn btn-sm btn-link text-primary p-0"
+                     title="Скачать"
+                     onclick="event.stopPropagation()">
+                    <i class="fas fa-download"></i>
+                  </a>
+                  {% if folder == 'raw' or folder == 'cleaning' or folder == 'typesetting' %}
+                  <button class="btn btn-sm btn-link text-danger p-0" 
+                          title="Удалить"
+                          onclick="event.stopPropagation(); deleteFile('{{ folder }}', '{{ file.name }}')">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-muted text-center py-2">
+              <small>Пусто</small>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    
+  </div>
+</div>
+
+<style>
+.file-group {
+  margin: 0;
+}
+
+.group-header {
+  padding: 0.75rem 1rem;
+  background: #e9ecef;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  border-bottom: 1px solid #dee2e6;
+  transition: background-color 0.2s;
+}
+
+.group-header:hover {
+  background: #dee2e6;
+}
+
+.group-header:hover .upload-btn,
+.group-header:hover .delete-selected-btn,
+.group-header:hover .select-all-btn {
+  opacity: 1 !important;
+}
+
+.upload-btn,
+.delete-selected-btn,
+.select-all-btn {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.file-checkbox {
+  cursor: pointer;
+  margin: 0;
+}
+
+.toggle-icon {
+  transition: transform 0.2s;
+  font-size: 0.75rem;
+}
+
+.group-header.collapsed .toggle-icon {
+  transform: rotate(-90deg);
+}
+
+.group-files {
+  background: white;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.group-files.collapsed {
+  display: none;
+}
+
+.file-item {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #f1f3f5;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.15s;
+}
+
+.file-item:hover {
+  background-color: #f8f9fa;
+}
+
+.file-item.active {
+  background-color: #e7f1ff;
+  border-left: 3px solid #0d6efd;
+  font-weight: 600;
+}
+</style>
+
+<script>
+// Переключение видимости файлов в группе
+function toggleFileGroup(header) {
+  const groupFiles = header.nextElementSibling;
+  const icon = header.querySelector('.toggle-icon');
+  
+  groupFiles.classList.toggle('collapsed');
+  header.classList.toggle('collapsed');
+}
+
+// Показать панель загрузки
+function showUploadPanel(folder, title) {
+  document.getElementById('upload-folder').value = folder;
+  document.getElementById('upload-folder-title').textContent = `Загрузка в ${title}`;
+  document.getElementById('file-upload-panel').style.display = 'block';
+}
+
+// Скрыть панель загрузки
+function hideUploadPanel() {
+  document.getElementById('file-upload-panel').style.display = 'none';
+  document.getElementById('file-upload-form').reset();
+  document.getElementById('upload-progress').style.display = 'none';
+}
+
+// Загрузка файлов (множественная)
+document.getElementById('file-upload-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const fileInput = document.getElementById('file-input');
+  const files = fileInput.files;
+  
+  if (files.length === 0) {
+    alert('Выберите файлы для загрузки');
+    return;
+  }
+  
+  const formData = new FormData();
+  const folder = document.getElementById('upload-folder').value;
+  
+  // Добавляем все файлы
+  for (let i = 0; i < files.length; i++) {
+    formData.append('file', files[i]);
+  }
+  formData.append('folder', folder);
+  
+  const progressBar = document.querySelector('#upload-progress .progress-bar');
+  const progressDiv = document.getElementById('upload-progress');
+  const statusText = document.getElementById('upload-status');
+  
+  progressDiv.style.display = 'block';
+  statusText.textContent = `Загрузка ${files.length} файл(ов)...`;
+  progressBar.style.width = '50%';
+  
+  fetch(`/projects/{{ project.pk }}/chapters/{{ chapter.pk }}/upload/`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(r => {
+    console.log('Response status:', r.status);
+    console.log('Response headers:', r.headers);
+    return r.json();
+  })
+  .then(data => {
+    console.log('Upload response:', data);
+    progressBar.style.width = '100%';
+    
+    if (data.success) {
+      let message = data.message;
+      
+      // Показываем детали
+      if (data.skipped_files && data.skipped_files.length > 0) {
+        message += '\n\nПропущены (уже существуют):\n' + data.skipped_files.join('\n');
+      }
+      if (data.errors && data.errors.length > 0) {
+        message += '\n\nОшибки:\n' + data.errors.join('\n');
+      }
+      
+      alert(message);
+      location.reload();
+    } else {
+      console.error('Upload failed:', data);
+      alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+    }
+  })
+  .catch(err => {
+    console.error('Upload error:', err);
+    alert('Ошибка загрузки: ' + err.message);
+  })
+  .finally(() => {
+    hideUploadPanel();
+  });
+});
+
+// Выбрать/снять все файлы в папке
+function toggleSelectAll(folder) {
+  const checkboxes = document.querySelectorAll(`.file-checkbox[data-folder="${folder}"]`);
+  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+  
+  // Если все выбраны - снимаем выбор, иначе - выбираем все
+  checkboxes.forEach(cb => {
+    cb.checked = !allChecked;
+  });
+  
+  updateSelectionUI(folder);
+}
+
+// Обновление UI выбора файлов
+function updateSelectionUI(folder) {
+  const checkboxes = document.querySelectorAll(`.file-checkbox[data-folder="${folder}"]`);
+  const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+  const totalCount = checkboxes.length;
+  
+  // Обновляем иконку кнопки "Выбрать все"
+  const selectAllBtn = document.querySelector(`.select-all-btn[data-folder="${folder}"]`);
+  const selectAllIcon = selectAllBtn?.querySelector('i');
+  if (selectAllIcon) {
+    if (selectedCount === totalCount && totalCount > 0) {
+      selectAllIcon.className = 'fas fa-square'; // Все выбраны - показываем "снять выбор"
+    } else {
+      selectAllIcon.className = 'fas fa-check-square'; // Не все выбраны - показываем "выбрать все"
+    }
+  }
+  
+  // Обновляем счётчик
+  const selectedCountEl = document.querySelector(`.selected-count-${folder}`);
+  const selectedNumEl = selectedCountEl?.querySelector('.selected-num');
+  const deleteBtn = document.querySelector(`.delete-selected-btn[data-folder="${folder}"]`);
+  
+  if (selectedCount > 0) {
+    selectedCountEl.style.display = 'inline';
+    selectedNumEl.textContent = selectedCount;
+    deleteBtn.style.display = 'inline-block';
+  } else {
+    selectedCountEl.style.display = 'none';
+    deleteBtn.style.display = 'none';
+  }
+}
+
+// Удаление выбранных файлов
+function deleteSelectedFiles(folder) {
+  const checkboxes = document.querySelectorAll(`.file-checkbox[data-folder="${folder}"]:checked`);
+  const filenames = Array.from(checkboxes).map(cb => cb.dataset.filename);
+  
+  if (filenames.length === 0) {
+    alert('Выберите файлы для удаления');
+    return;
+  }
+  
+  if (!confirm(`Удалить ${filenames.length} файл(ов)?`)) return;
+  
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  if (!csrfToken) {
+    alert('Ошибка: CSRF токен не найден');
+    return;
+  }
+  
+  // Удаляем файлы последовательно
+  let deleted = 0;
+  let errors = [];
+  
+  Promise.all(filenames.map(filename => 
+    fetch(`/projects/{{ project.pk }}/chapters/{{ chapter.pk }}/download/${folder}/${filename}/`, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRFToken': csrfToken,
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        deleted++;
+      } else {
+        errors.push(`${filename}: ${data.error}`);
+      }
+    })
+    .catch(err => {
+      errors.push(`${filename}: ${err.message}`);
+    })
+  ))
+  .then(() => {
+    let message = `Удалено: ${deleted} из ${filenames.length}`;
+    if (errors.length > 0) {
+      message += '\n\nОшибки:\n' + errors.join('\n');
+    }
+    alert(message);
+    location.reload();
+  });
+}
+
+// Удаление одного файла
+function deleteFile(folder, filename) {
+  if (!confirm(`Удалить файл "${filename}"?`)) return;
+  
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  if (!csrfToken) {
+    alert('Ошибка: CSRF токен не найден');
+    return;
+  }
+  
+  fetch(`/projects/{{ project.pk }}/chapters/{{ chapter.pk }}/download/${folder}/${filename}/`, {
+    method: 'DELETE',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(r => {
+    if (!r.ok) {
+      throw new Error(`HTTP error! status: ${r.status}`);
+    }
+    return r.json();
+  })
+  .then(data => {
+    if (data.success) {
+      alert(data.message || 'Файл удалён');
+      location.reload();
+    } else {
+      alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+    }
+  })
+  .catch(err => {
+    console.error('Delete error:', err);
+    alert('Ошибка при удалении файла: ' + err.message);
+  });
+}
+</script>

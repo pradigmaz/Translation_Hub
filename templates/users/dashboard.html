@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load form_tags %}
+
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<!-- Интегрируем user_header компонент -->
+{% include "users/components/user_header.html" %}
+
+<div class="container py-4">
+    <!-- Карточки с метриками -->
+    <div class="row g-4 mb-5 justify-content-center">
+        <div class="col-md-4 col-lg-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-primary mb-2">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                    <h3 class="card-title text-primary mb-1">{{ teams_count|default:0 }}</h3>
+                    <p class="card-text text-muted">{{ teams_count|default:0|russian_pluralize:"Команда,Команды,Команд" }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 col-lg-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-success mb-2">
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                    <h3 class="card-title text-success mb-1">{{ tasks_count|default:0 }}</h3>
+                    <p class="card-text text-muted">{{ tasks_count|default:0|russian_pluralize:"Задача,Задачи,Задач" }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 col-lg-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-info mb-2">
+                        <i class="fas fa-project-diagram fa-2x"></i>
+                    </div>
+                    <h3 class="card-title text-info mb-1">{{ projects_count|default:0 }}</h3>
+                    <p class="card-text text-muted">{{ projects_count|default:0|russian_pluralize:"Проект,Проекта,Проектов" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Последние 5 задач -->
+        <div class="col-lg-8">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h2 class="card-title h5 mb-0">
+                        <i class="fas fa-tasks me-2"></i>Последние задачи
+                    </h2>
+                    <a href="{% url 'users:tasks' %}" class="btn btn-outline-light btn-sm">
+                        Все задачи <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_tasks %}
+                        <div class="list-group list-group-flush">
+                            {% for task in recent_tasks %}
+                                <div class="list-group-item px-0 border-0 border-bottom">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1 fw-bold">{{ task.title }}</h6>
+                                            <p class="mb-1 text-muted small">
+                                                <i class="fas fa-project-diagram me-1"></i>
+                                                {{ task.project.title }}
+                                                {% if task.chapter %}
+                                                    - {{ task.chapter.title }}
+                                                {% endif %}
+                                            </p>
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar me-1"></i>
+                                                {{ task.created_at|date:"d.m.Y" }}
+                                            </small>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge 
+                                                {% if task.status == 'completed' %}bg-success
+                                                {% elif task.status == 'in_progress' %}bg-warning
+                                                {% elif task.status == 'review' %}bg-info
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ task.get_status_display }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">У вас пока нет назначенных задач.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Быстрые ссылки и команды -->
+        <div class="col-lg-4">
+            <!-- Быстрые ссылки -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-link me-2"></i>Быстрые ссылки
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'teams:team_create' %}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-plus me-2"></i>Создать команду
+                        </a>
+                        <a href="{% url 'users:settings' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-cog me-2"></i>Настройки
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Мои команды (краткий список) -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users me-2"></i>Мои команды
+                    </h5>
+                    <a href="{% url 'teams:team_list' %}" class="btn btn-outline-primary btn-sm">
+                        Все <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if user_teams %}
+                        <div class="list-group list-group-flush">
+                            {% for team in user_teams|slice:":3" %}
+                                <a href="{% url 'teams:team_detail' pk=team.pk %}" 
+                                   class="list-group-item list-group-item-action px-0 border-0 border-bottom">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ team.name }}</h6>
+                                            <small class="text-muted">
+                                                <i class="fas fa-user me-1"></i>
+                                                {{ team.get_active_members_count }} участник{{ team.get_active_members_count|pluralize:"ов" }}
+                                            </small>
+                                        </div>
+                                        <i class="fas fa-chevron-right text-muted"></i>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-2">Вы пока не состоите ни в одной команде.</p>
+                            <a href="{% url 'teams:team_create' %}" class="btn btn-primary btn-sm">
+                                Создать команду
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

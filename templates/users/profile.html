@@ -1,0 +1,111 @@
+<!-- templates/users/profile.html -->
+{% extends 'base.html' %}
+{% load form_tags %}
+
+{% block title %}{{ user.display_name|default:user.username }} - Профиль{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Аватар и имя -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body text-center py-5">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="{{ user.username }}" 
+                             class="rounded-circle mb-3" 
+                             style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" 
+                             style="width: 150px; height: 150px; font-size: 3rem;">
+                            {{ user.username|first|upper }}
+                        </div>
+                    {% endif %}
+                    
+                    <h2 class="mb-1">{{ user.display_name|default:user.username }}</h2>
+                    <p class="text-muted">@{{ user.username }}</p>
+                </div>
+            </div>
+
+            <!-- О себе -->
+            {% if user.bio %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>О себе</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ user.bio }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Статистика -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Статистика</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="p-3">
+                                <div class="h3 text-primary mb-1">{{ user_teams_count }}</div>
+                                <div class="small text-muted">{{ user_teams_count|russian_pluralize:"Команда,Команды,Команд" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3">
+                                <div class="h3 text-warning mb-1">{{ user_tasks_count }}</div>
+                                <div class="small text-muted">{{ user_tasks_count|russian_pluralize:"Задача,Задачи,Задач" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3">
+                                <div class="h3 text-success mb-1">{{ completed_tasks_count }}</div>
+                                <div class="small text-muted">{{ completed_tasks_count|russian_pluralize:"Выполнена,Выполнено,Выполнено" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Команды -->
+            {% if user_memberships %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Команды</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for membership in user_memberships %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ membership.team.name }}</h6>
+                                    <small class="text-muted">
+                                        {% for role in membership.roles.all %}
+                                            <span class="badge bg-secondary">{{ role.name }}</span>
+                                        {% endfor %}
+                                    </small>
+                                </div>
+                                <a href="{% url 'teams:team_detail' membership.team.pk %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    Перейти
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Кнопка редактирования (только для владельца) -->
+            <div class="text-center">
+                <a href="{% url 'users:dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Вернуться в кабинет
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,521 @@
+{% load static %}
+
+<div class="file-manager-panel">
+  <div class="card">
+    <div class="card-header">
+      <h6 class="mb-0">
+        <i class="fas fa-folder me-2"></i>Файловый менеджер
+      </h6>
+    </div>
+    <div class="card-body p-0">
+      <!-- Панель загрузки файлов -->
+      <div id="file-upload-panel" class="p-3 border-bottom bg-light" style="display: none;">
+        <div class="card">
+          <div class="card-header bg-light py-2">
+            <h6 class="mb-0 d-flex justify-content-between align-items-center">
+              <span id="upload-folder-title">Загрузка файлов</span>
+              <button type="button" class="btn-close" onclick="hideUploadPanel()"></button>
+            </h6>
+          </div>
+          <div class="card-body">
+            <form id="file-upload-form" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" id="upload-chapter-id" name="chapter_id">
+              <input type="hidden" id="upload-folder" name="folder">
+              
+              <div class="mb-3">
+                <label for="file-input" class="form-label">Выберите файлы</label>
+                <input type="file" class="form-control" id="file-input" name="file" 
+                       accept=".jpg,.jpeg,.png,.gif,.pdf,.txt,.doc,.docx,.zip,.rar">
+                <div class="form-text">
+                  Максимальный размер файла: 50MB. Поддерживаемые форматы: изображения, документы, архивы
+                </div>
+              </div>
+              
+              <div class="d-flex flex-column flex-sm-row gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                  <i class="fas fa-upload me-2"></i>Загрузить файлы
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="hideUploadPanel()">
+                  Отмена
+                </button>
+              </div>
+              
+              <!-- Прогресс загрузки -->
+              <div id="upload-progress" class="mt-3" style="display: none;">
+                <div class="progress" style="height: 8px;">
+                  <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <small class="text-muted mt-1 d-block" id="upload-status">Загрузка...</small>
+              </div>
+              
+              <!-- Сообщения об ошибках -->
+              <div id="upload-errors" class="mt-3" style="display: none;">
+                <div class="alert alert-danger" role="alert">
+                  <ul class="mb-0" id="error-list"></ul>
+                </div>
+              </div>
+              
+              <!-- Сообщения об успехе -->
+              <div id="upload-success" class="mt-3" style="display: none;">
+                <div class="alert alert-success" role="alert">
+                  <i class="fas fa-check-circle me-2"></i>
+                  <span id="success-message"></span>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% if chapters %}
+        {% for chapter in chapters %}
+          <div class="chapter-section border-bottom" data-chapter-id="{{ chapter.id }}">
+            <div class="card-header bg-light py-2">
+              <h6 class="mb-0 d-flex justify-content-between align-items-center">
+                <span>{{ chapter.title }}</span>
+                <small class="text-muted">{{ chapter.get_status_display }}</small>
+              </h6>
+            </div>
+            <div class="list-group list-group-flush">
+              <!-- RAW папка -->
+              <div class="list-group-item list-group-item-action py-2 folder-item" data-folder="raw" data-chapter-id="{{ chapter.id }}">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fw-medium">
+                    <i class="fas fa-folder me-2 text-secondary"></i>raw
+                  </span>
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted file-count" data-folder="raw">
+                      <span class="count">0</span> файлов
+                    </small>
+                    <button class="btn btn-outline-primary btn-sm upload-btn opacity-0" 
+                            data-folder="raw" data-chapter-id="{{ chapter.id }}"
+                            onclick="showUploadPanel('{{ chapter.id }}', 'raw', 'RAW - Исходные материалы')">
+                      <i class="fas fa-upload"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Translation папка -->
+              <div class="list-group-item list-group-item-action py-2 folder-item" data-folder="translation" data-chapter-id="{{ chapter.id }}">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fw-medium">
+                    <i class="fas fa-folder me-2 text-primary"></i>translation
+                  </span>
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted file-count" data-folder="translation">
+                      <span class="count">0</span> файлов
+                    </small>
+                    <button class="btn btn-outline-primary btn-sm upload-btn opacity-0" 
+                            data-folder="translation" data-chapter-id="{{ chapter.id }}"
+                            onclick="showUploadPanel('{{ chapter.id }}', 'translation', 'Translation - Переводы')">
+                      <i class="fas fa-upload"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Cleaning папка -->
+              <div class="list-group-item list-group-item-action py-2 folder-item" data-folder="cleaning" data-chapter-id="{{ chapter.id }}">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fw-medium">
+                    <i class="fas fa-folder me-2 text-info"></i>cleaning
+                  </span>
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted file-count" data-folder="cleaning">
+                      <span class="count">0</span> файлов
+                    </small>
+                    <button class="btn btn-outline-primary btn-sm upload-btn opacity-0" 
+                            data-folder="cleaning" data-chapter-id="{{ chapter.id }}"
+                            onclick="showUploadPanel('{{ chapter.id }}', 'cleaning', 'Cleaning - Очистка')">
+                      <i class="fas fa-upload"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Typesetting папка -->
+              <div class="list-group-item list-group-item-action py-2 folder-item" data-folder="typesetting" data-chapter-id="{{ chapter.id }}">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fw-medium">
+                    <i class="fas fa-folder me-2 text-warning"></i>typesetting
+                  </span>
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted file-count" data-folder="typesetting">
+                      <span class="count">0</span> файлов
+                    </small>
+                    <button class="btn btn-outline-primary btn-sm upload-btn opacity-0" 
+                            data-folder="typesetting" data-chapter-id="{{ chapter.id }}"
+                            onclick="showUploadPanel('{{ chapter.id }}', 'typesetting', 'Typesetting - Тайпинг')">
+                      <i class="fas fa-upload"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Editing папка -->
+              <div class="list-group-item list-group-item-action py-2 folder-item" data-folder="editing" data-chapter-id="{{ chapter.id }}">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fw-medium">
+                    <i class="fas fa-folder me-2 text-success"></i>editing
+                  </span>
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted file-count" data-folder="editing">
+                      <span class="count">0</span> файлов
+                    </small>
+                    <button class="btn btn-outline-primary btn-sm upload-btn opacity-0" 
+                            data-folder="editing" data-chapter-id="{{ chapter.id }}"
+                            onclick="showUploadPanel('{{ chapter.id }}', 'editing', 'Editing - Редактура')">
+                      <i class="fas fa-upload"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Final папка -->
+              <div class="list-group-item list-group-item-action py-2 folder-item" data-folder="final" data-chapter-id="{{ chapter.id }}">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fw-medium">
+                    <i class="fas fa-folder me-2 text-dark"></i>final
+                  </span>
+                  <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted file-count" data-folder="final">
+                      <span class="count">0</span> файлов
+                    </small>
+                    <button class="btn btn-outline-primary btn-sm upload-btn opacity-0" 
+                            data-folder="final" data-chapter-id="{{ chapter.id }}"
+                            onclick="showUploadPanel('{{ chapter.id }}', 'final', 'Final - Финальные файлы')">
+                      <i class="fas fa-upload"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-center py-4">
+          <i class="fas fa-folder fa-2x text-muted mb-3"></i>
+          <p class="text-muted mb-0">Нет глав</p>
+          <small class="text-muted">Создайте первую главу для начала работы</small>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
+
+<!-- JavaScript для интерактивности файлового менеджера -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация файлового менеджера
+    initFileManager();
+    
+    // Загрузка счетчиков файлов для всех папок
+    loadAllFileCounts();
+});
+
+function initFileManager() {
+    // Обработчики кликов по папкам
+    document.querySelectorAll('.folder-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+            const folder = this.dataset.folder;
+            const chapterId = this.dataset.chapterId;
+            
+            // Убираем активный класс с других папок
+            document.querySelectorAll('.folder-item').forEach(function(otherItem) {
+                otherItem.classList.remove('active');
+                otherItem.style.borderLeft = '';
+            });
+            
+            // Добавляем активный класс к выбранной папке
+            this.classList.add('active');
+            this.style.borderLeft = '3px solid #0d6efd';
+            
+            // Загружаем файлы для выбранной папки
+            loadFolderFiles(chapterId, folder);
+        });
+        
+        // Обработчики для показа кнопок загрузки при наведении
+        item.addEventListener('mouseenter', function() {
+            const uploadBtn = this.querySelector('.upload-btn');
+            if (uploadBtn) {
+                uploadBtn.classList.remove('opacity-0');
+                uploadBtn.classList.add('opacity-100');
+            }
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            const uploadBtn = this.querySelector('.upload-btn');
+            if (uploadBtn && !uploadBtn.matches(':focus')) {
+                uploadBtn.classList.remove('opacity-100');
+                uploadBtn.classList.add('opacity-0');
+            }
+        });
+        
+        // Обработчик для фокуса на кнопке загрузки
+        const uploadBtn = item.querySelector('.upload-btn');
+        if (uploadBtn) {
+            uploadBtn.addEventListener('focus', function() {
+                this.classList.remove('opacity-0');
+                this.classList.add('opacity-100');
+            });
+            
+            uploadBtn.addEventListener('blur', function() {
+                if (!item.matches(':hover')) {
+                    this.classList.remove('opacity-100');
+                    this.classList.add('opacity-0');
+                }
+            });
+        }
+    });
+}
+
+function loadAllFileCounts() {
+    // Получаем все главы и загружаем счетчики файлов
+    const chapters = document.querySelectorAll('.chapter-section');
+    
+    chapters.forEach(function(chapterSection) {
+        const chapterId = chapterSection.dataset.chapterId;
+        loadChapterFileCounts(chapterId);
+    });
+}
+
+function loadChapterFileCounts(chapterId) {
+    // Отправляем AJAX запрос для получения счетчиков файлов главы
+    const projectId = getProjectIdFromUrl();
+    
+    fetch(`/projects/${projectId}/chapters/${chapterId}/file-counts/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateFileCountsDisplay(chapterId, data.counts);
+        } else {
+            console.error('Error loading file counts:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Network error loading file counts:', error);
+    });
+}
+
+function updateFileCountsDisplay(chapterId, counts) {
+    // Обновляем отображение счетчиков файлов
+    const chapterSection = document.querySelector(`[data-chapter-id="${chapterId}"]`);
+    
+    if (chapterSection) {
+        Object.keys(counts).forEach(function(folder) {
+            const countElement = chapterSection.querySelector(`[data-folder="${folder}"] .count`);
+            if (countElement) {
+                countElement.textContent = counts[folder];
+            }
+        });
+    }
+}
+
+function loadFolderFiles(chapterId, folder) {
+    // Показываем загрузку
+    showFileListLoading();
+    
+    // Загружаем список файлов для выбранной папки
+    const projectId = getProjectIdFromUrl();
+    
+    fetch(`/projects/${projectId}/chapters/${chapterId}/files/?folder=${folder}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayFolderFiles(data.files, folder, data.chapter);
+        } else {
+            showFileListError(data.error || 'Ошибка загрузки файлов');
+        }
+    })
+    .catch(error => {
+        console.error('Network error loading folder files:', error);
+        showFileListError('Ошибка сети при загрузке файлов');
+    });
+}
+
+function getProjectIdFromUrl() {
+    // Извлекаем ID проекта из URL
+    const pathParts = window.location.pathname.split('/');
+    const projectIndex = pathParts.indexOf('projects');
+    return projectIndex !== -1 ? pathParts[projectIndex + 1] : null;
+}
+
+// Функция для обновления счетчика файлов после загрузки
+function updateFileCount(chapterId, folder, newCount) {
+    const chapterSection = document.querySelector(`[data-chapter-id="${chapterId}"]`);
+    if (chapterSection) {
+        const countElement = chapterSection.querySelector(`[data-folder="${folder}"] .count`);
+        if (countElement) {
+            countElement.textContent = newCount;
+        }
+    }
+}
+
+// Функции для управления панелью загрузки файлов
+function showUploadPanel(chapterId, folder, folderTitle) {
+    const uploadPanel = document.getElementById('file-upload-panel');
+    const uploadFolderTitle = document.getElementById('upload-folder-title');
+    const uploadChapterId = document.getElementById('upload-chapter-id');
+    const uploadFolder = document.getElementById('upload-folder');
+    
+    // Устанавливаем значения
+    uploadFolderTitle.textContent = `Загрузка в: ${folderTitle}`;
+    uploadChapterId.value = chapterId;
+    uploadFolder.value = folder;
+    
+    // Очищаем форму
+    document.getElementById('file-upload-form').reset();
+    hideUploadMessages();
+    
+    // Показываем панель
+    uploadPanel.style.display = 'block';
+    uploadPanel.scrollIntoView({ behavior: 'smooth' });
+}
+
+function hideUploadPanel() {
+    const uploadPanel = document.getElementById('file-upload-panel');
+    uploadPanel.style.display = 'none';
+    
+    // Очищаем форму
+    document.getElementById('file-upload-form').reset();
+    hideUploadMessages();
+}
+
+function hideUploadMessages() {
+    document.getElementById('upload-progress').style.display = 'none';
+    document.getElementById('upload-errors').style.display = 'none';
+    document.getElementById('upload-success').style.display = 'none';
+}
+
+function showUploadProgress() {
+    document.getElementById('upload-progress').style.display = 'block';
+    document.getElementById('upload-errors').style.display = 'none';
+    document.getElementById('upload-success').style.display = 'none';
+}
+
+function showUploadError(errors) {
+    const errorList = document.getElementById('error-list');
+    errorList.innerHTML = '';
+    
+    errors.forEach(function(error) {
+        const li = document.createElement('li');
+        li.textContent = error;
+        errorList.appendChild(li);
+    });
+    
+    document.getElementById('upload-errors').style.display = 'block';
+    document.getElementById('upload-progress').style.display = 'none';
+    document.getElementById('upload-success').style.display = 'none';
+}
+
+function showUploadSuccess(message) {
+    document.getElementById('success-message').textContent = message;
+    document.getElementById('upload-success').style.display = 'block';
+    document.getElementById('upload-progress').style.display = 'none';
+    document.getElementById('upload-errors').style.display = 'none';
+}
+
+// Обработчик отправки формы загрузки
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadForm = document.getElementById('file-upload-form');
+    
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleFileUpload();
+        });
+    }
+});
+
+function handleFileUpload() {
+    const form = document.getElementById('file-upload-form');
+    const fileInput = document.getElementById('file-input');
+    const chapterId = document.getElementById('upload-chapter-id').value;
+    const folder = document.getElementById('upload-folder').value;
+    const projectId = getProjectIdFromUrl();
+    
+    // Проверяем, что файл выбран
+    if (!fileInput.files || fileInput.files.length === 0) {
+        showUploadError(['Выберите файл для загрузки']);
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    
+    // Показываем прогресс
+    showUploadProgress();
+    
+    // Подготавливаем данные для отправки
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', folder);
+    
+    // Получаем CSRF токен
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Обновляем статус
+    const progressBar = document.querySelector('#upload-progress .progress-bar');
+    const statusText = document.getElementById('upload-status');
+    
+    progressBar.style.width = '50%';
+    statusText.textContent = `Загружаем ${file.name}...`;
+    
+    // Отправляем файл
+    fetch(`/projects/${projectId}/chapters/${chapterId}/upload/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        progressBar.style.width = '100%';
+        statusText.textContent = 'Загрузка завершена';
+        
+        if (data.success) {
+            // Обновляем счетчик файлов если получили новое значение
+            if (data.file_count !== undefined) {
+                updateFileCount(chapterId, folder, data.file_count);
+            }
+            
+            // Обновляем список файлов если он отображается
+            refreshFileListAfterUpload(chapterId, folder);
+            
+            showUploadSuccess(data.message || `Файл "${file.name}" успешно загружен`);
+            
+            // Очищаем форму через 3 секунды
+            setTimeout(function() {
+                hideUploadPanel();
+            }, 3000);
+        } else {
+            const errors = [];
+            if (data.details && Array.isArray(data.details)) {
+                errors.push(...data.details);
+            } else {
+                errors.push(data.error || 'Неизвестная ошибка');
+            }
+            showUploadError(errors);
+        }
+    })
+    .catch(error => {
+        progressBar.style.width = '100%';
+        statusText.textContent = 'Ошибка загрузки';
+        showUploadError([`Ошибка сети: ${error.message}`]);
+    });
+}
+</script>

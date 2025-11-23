@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% load form_tags %}
+
+{% block title %}Создать новую команду{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb bg-light rounded px-3 py-2 shadow-sm">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'teams:team_list' %}" class="text-decoration-none">
+                            <i class="fas fa-users me-1"></i>Команды
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active fw-semibold" aria-current="page">
+                        <i class="fas fa-plus me-1"></i>Создание команды
+                    </li>
+                </ol>
+            </nav>
+
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-header text-bg-primary border-0 py-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-3 me-3">
+                            <i class="fas fa-users text-white fs-4"></i>
+                        </div>
+                        <div>
+                            <h2 class="card-title h4 mb-1 fw-bold text-white">Создание новой команды</h2>
+                            <p class="mb-0 text-white-50">Создайте команду для совместной работы над проектами</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" id="teamCreateForm" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="alert alert-info border-0 shadow-sm mb-4" role="alert">
+                            <div class="d-flex align-items-start">
+                                <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3 mt-1">
+                                    <i class="fas fa-info-circle text-info"></i>
+                                </div>
+                                <div>
+                                    <h6 class="alert-heading fw-bold mb-2">Что нужно знать</h6>
+                                    <ul class="mb-0 ps-3">
+                                        <li>Вы автоматически станете руководителем команды</li>
+                                        <li>Название должно быть уникальным среди ваших команд</li>
+                                        <li>Позже вы сможете пригласить участников</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Название команды -->
+                        <div class="mb-4">
+                            <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold fs-5">
+                                <i class="fas fa-tag me-2 text-muted"></i>{{ form.name.label }}
+                            </label>
+                            {{ form.name|add_class:"form-control form-control-lg" }}
+                            {% if form.name.help_text %}
+                                <div class="form-text mt-2">
+                                    <i class="fas fa-lightbulb me-1 text-muted"></i>{{ form.name.help_text }}
+                                </div>
+                            {% endif %}
+                            {% if form.name.errors %}
+                                <div class="text-danger mt-2">
+                                    {% for error in form.name.errors %}
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            <small>{{ error }}</small>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Выбор ролей (только при создании) -->
+                        {% if form.role_ids %}
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold fs-5">
+                                <i class="fas fa-user-tag me-2 text-muted"></i>{{ form.role_ids.label }}
+                            </label>
+                            <div class="alert alert-warning border-0 shadow-sm mb-3" role="alert">
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-crown text-warning me-2 mt-1"></i>
+                                    <small>Роль "Руководитель" будет назначена автоматически. Выберите дополнительные роли для работы в команде.</small>
+                                </div>
+                            </div>
+                            <div class="card border-0 bg-light p-3">
+                                {% for choice in form.role_ids %}
+                                <div class="form-check mb-2">
+                                    {{ choice.tag }}
+                                    <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                        {{ choice.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.role_ids.help_text %}
+                                <div class="form-text mt-2">
+                                    <i class="fas fa-lightbulb me-1 text-muted"></i>{{ form.role_ids.help_text }}
+                                </div>
+                            {% endif %}
+                            {% if form.role_ids.errors %}
+                                <div class="text-danger mt-2">
+                                    {% for error in form.role_ids.errors %}
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            <small>{{ error }}</small>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex gap-3 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg flex-fill shadow-sm" id="submitBtn">
+                                <i class="fas fa-plus me-2"></i>
+                                <span id="submitText">Создать команду</span>
+                                <div class="spinner-border spinner-border-sm ms-2 d-none" role="status" id="submitSpinner">
+                                    <span class="visually-hidden">Загрузка...</span>
+                                </div>
+                            </button>
+                            <a href="{% url 'teams:team_list' %}" class="btn btn-outline-secondary btn-lg shadow-sm">
+                                <i class="fas fa-times me-2"></i>Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Дополнительная информация -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body p-4">
+                            <h6 class="fw-bold mb-3">
+                                <i class="fas fa-question-circle me-2 text-primary"></i>
+                                Часто задаваемые вопросы
+                            </h6>
+                            <div class="accordion accordion-flush" id="faqAccordion">
+                                <div class="accordion-item bg-transparent border-0">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed bg-transparent border-0 shadow-none" 
+                                                type="button" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#faq1">
+                                            Можно ли изменить название команды?
+                                        </button>
+                                    </h2>
+                                    <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body pt-0">
+                                            Да, название команды можно изменить в настройках команды после создания.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item bg-transparent border-0">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed bg-transparent border-0 shadow-none" 
+                                                type="button" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#faq2">
+                                            Сколько участников может быть в команде?
+                                        </button>
+                                    </h2>
+                                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body pt-0">
+                                            В команде может быть неограниченное количество участников.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "components/modals/modal_alert.html" with modal_id="successModal" title="Команда создана успешно!" icon="fas fa-check-circle" variant="success" body_content='<div class="mb-3"><div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;"><i class="fas fa-users text-success" style="font-size: 2rem;"></i></div></div><h6 class="fw-bold mb-2">Поздравляем!</h6><p class="text-muted mb-0">Ваша команда "<span id="teamNameDisplay"></span>" успешно создана. Теперь вы можете пригласить участников и начать работу над проектами.</p>' btn_text="Перейти к команде" btn_icon="fas fa-arrow-right" btn_variant="success" btn_id="goToTeamBtn" center_button=True centered=True %}
+
+{% endblock %}

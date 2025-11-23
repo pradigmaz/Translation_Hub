@@ -1,0 +1,8 @@
+<!-- Базовый компонент модального окна -->
+<div class="modal fade" id="{{ modal_id }}" tabindex="-1" aria-labelledby="{{ modal_id }}Label" aria-hidden="true">
+    <div class="modal-dialog {% if centered %}modal-dialog-centered{% endif %} {% if size %}modal-{{ size }}{% endif %}">
+        <div class="modal-content {% if variant == 'danger' %}border-danger{% else %}border-0 shadow{% endif %}">
+            {% block modal_content %}{% endblock %}
+        </div>
+    </div>
+</div>

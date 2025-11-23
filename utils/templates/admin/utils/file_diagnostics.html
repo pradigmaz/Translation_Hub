@@ -1,0 +1,366 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | {{ site_title|default:"Django site admin" }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Главная</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block extrahead %}
+<link href="{% static 'css/admin-utils.css' %}" rel="stylesheet">
+<script src="{% static 'js/admin-utils.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h2 mb-4">{{ title }}</h1>
+            
+            {% if error %}
+                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <div><strong>Ошибка:</strong> {{ error }}</div>
+                </div>
+            {% else %}
+                <!-- Сводка по проблемам -->
+                {% if integrity_report %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>Сводка диагностики
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="card border-danger h-100">
+                                    <div class="card-body text-center">
+                                        <div class="display-4 text-danger mb-2">{{ integrity_report.summary.critical_issues }}</div>
+                                        <p class="card-text">Критические проблемы</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card border-warning h-100">
+                                    <div class="card-body text-center">
+                                        <div class="display-4 text-warning mb-2">{{ integrity_report.summary.warnings }}</div>
+                                        <p class="card-text">Предупреждения</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card {% if integrity_report.summary.total_issues == 0 %}border-success{% else %}border-warning{% endif %} h-100">
+                                    <div class="card-body text-center">
+                                        <div class="display-4 {% if integrity_report.summary.total_issues == 0 %}text-success{% else %}text-warning{% endif %} mb-2">
+                                            {{ integrity_report.summary.total_issues }}
+                                        </div>
+                                        <p class="card-text">Всего проблем</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if integrity_report.summary.total_issues == 0 %}
+                            <div class="alert alert-success d-flex align-items-center" role="alert">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <div>Структура файлов в порядке - проблем не обнаружено</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+        
+                <!-- Недостающие директории -->
+                {% if integrity_report.missing_directories %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0 collapsible" style="cursor: pointer;">
+                            <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                            Недостающие директории ({{ integrity_report.missing_directories|length }})
+                            <i class="fas fa-chevron-down float-end"></i>
+                        </h5>
+                    </div>
+                    <div class="card-body collapsible-content">
+                        {% for missing in integrity_report.missing_directories %}
+                        <div class="alert {% if missing.severity == 'critical' %}alert-danger{% else %}alert-warning{% endif %} mb-2">
+                            <div class="d-flex align-items-start">
+                                <i class="fas {% if missing.severity == 'critical' %}fa-times-circle{% else %}fa-exclamation-triangle{% endif %} me-2 mt-1"></i>
+                                <div class="flex-grow-1">
+                                    <strong><code>{{ missing.path }}</code></strong><br>
+                                    <small class="text-muted">
+                                        Тип: {{ missing.type|capfirst }}
+                                        {% if missing.username %}
+                                            - Пользователь: {{ missing.username }}
+                                        {% endif %}
+                                        {% if missing.team_name %}
+                                            - Команда: {{ missing.team_name }}
+                                        {% endif %}
+                                        {% if missing.project_title %}
+                                            - Проект: {{ missing.project_title }}
+                                        {% endif %}
+                                        <br>Серьезность: {{ missing.severity|capfirst }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+        
+                <!-- Осиротевшие директории -->
+                {% if integrity_report.orphaned_directories %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0 collapsible" style="cursor: pointer;">
+                            <i class="fas fa-trash text-warning me-2"></i>
+                            Осиротевшие директории ({{ integrity_report.orphaned_directories|length }})
+                            <i class="fas fa-chevron-down float-end"></i>
+                        </h5>
+                    </div>
+                    <div class="card-body collapsible-content">
+                        {% for orphaned in integrity_report.orphaned_directories %}
+                        <div class="alert alert-warning mb-2">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-folder-open me-2 mt-1"></i>
+                                <div class="flex-grow-1">
+                                    <strong><code>{{ orphaned.path }}</code></strong><br>
+                                    <small class="text-muted">
+                                        Тип: {{ orphaned.type|capfirst }}
+                                        {% if orphaned.user_id %}
+                                            - ID пользователя: {{ orphaned.user_id }}
+                                        {% endif %}
+                                        {% if orphaned.team_id %}
+                                            - ID команды: {{ orphaned.team_id }}
+                                        {% endif %}
+                                        <br>Директория не связана с существующими объектами
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Осиротевшие файлы -->
+                {% if orphaned_files %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0 collapsible" style="cursor: pointer;">
+                            <i class="fas fa-file text-warning me-2"></i>
+                            Осиротевшие файлы ({{ orphaned_files.summary.total_files }})
+                            <i class="fas fa-chevron-down float-end"></i>
+                        </h5>
+                    </div>
+                    <div class="card-body collapsible-content">
+                        <div class="alert alert-info mb-3">
+                            <strong>Общий размер:</strong> {{ orphaned_files.summary.total_size|filesizeformat }}
+                        </div>
+                        
+                        {% if orphaned_files.user_files %}
+                        <h6 class="mb-3">Файлы пользователей ({{ orphaned_files.user_files|length }})</h6>
+                        <div class="table-responsive mb-4">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Путь</th>
+                                        <th>Размер</th>
+                                        <th>Изменен</th>
+                                        <th>ID пользователя</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for file in orphaned_files.user_files|slice:":20" %}
+                                    <tr>
+                                        <td><code class="small">{{ file.path }}</code></td>
+                                        <td>{{ file.size|filesizeformat }}</td>
+                                        <td>{{ file.modified|date:"d.m.Y H:i" }}</td>
+                                        <td>{{ file.user_id }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% if orphaned_files.user_files|length > 20 %}
+                                    <tr>
+                                        <td colspan="4" class="text-muted fst-italic">
+                                            ... и еще {{ orphaned_files.user_files|length|add:"-20" }} файлов
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                        
+                        {% if orphaned_files.team_files %}
+                        <h6 class="mb-3">Файлы команд ({{ orphaned_files.team_files|length }})</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Путь</th>
+                                        <th>Размер</th>
+                                        <th>Изменен</th>
+                                        <th>ID команды</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for file in orphaned_files.team_files|slice:":20" %}
+                                    <tr>
+                                        <td><code class="small">{{ file.path }}</code></td>
+                                        <td>{{ file.size|filesizeformat }}</td>
+                                        <td>{{ file.modified|date:"d.m.Y H:i" }}</td>
+                                        <td>{{ file.team_id }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% if orphaned_files.team_files|length > 20 %}
+                                    <tr>
+                                        <td colspan="4" class="text-muted fst-italic">
+                                            ... и еще {{ orphaned_files.team_files|length|add:"-20" }} файлов
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+        
+                <!-- Проблемы с правами доступа -->
+                {% if permission_issues %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0 collapsible" style="cursor: pointer;">
+                            <i class="fas fa-lock text-danger me-2"></i>
+                            Проблемы с правами доступа ({{ permission_issues.summary.total_issues }})
+                            <i class="fas fa-chevron-down float-end"></i>
+                        </h5>
+                    </div>
+                    <div class="card-body collapsible-content">
+                        {% if permission_issues.unreadable_files %}
+                        <h6 class="mb-3">Нечитаемые файлы ({{ permission_issues.unreadable_files|length }})</h6>
+                        <div class="table-responsive mb-4">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Путь</th>
+                                        <th>Права доступа</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for file in permission_issues.unreadable_files|slice:":10" %}
+                                    <tr>
+                                        <td><code class="small">{{ file.path }}</code></td>
+                                        <td><code>{{ file.permissions }}</code></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                        
+                        {% if permission_issues.unwritable_directories %}
+                        <h6 class="mb-3">Недоступные для записи директории ({{ permission_issues.unwritable_directories|length }})</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Путь</th>
+                                        <th>Права доступа</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for dir in permission_issues.unwritable_directories|slice:":10" %}
+                                    <tr>
+                                        <td><code class="small">{{ dir.path }}</code></td>
+                                        <td><code>{{ dir.permissions }}</code></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Дублирующиеся файлы -->
+                {% if duplicate_files %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0 collapsible" style="cursor: pointer;">
+                            <i class="fas fa-copy text-info me-2"></i>
+                            Дублирующиеся файлы ({{ duplicate_files.summary.total_duplicates }})
+                            <i class="fas fa-chevron-down float-end"></i>
+                        </h5>
+                    </div>
+                    <div class="card-body collapsible-content">
+                        <div class="alert alert-info mb-3">
+                            <strong>Потрачено места:</strong> {{ duplicate_files.summary.wasted_space|filesizeformat }}
+                        </div>
+                        
+                        {% for group in duplicate_files.duplicate_groups|slice:":10" %}
+                        <div class="card border-warning mb-3">
+                            <div class="card-header bg-warning bg-opacity-10">
+                                <h6 class="card-title mb-0">
+                                    Группа дубликатов ({{ group.count }} файлов, {{ group.size|filesizeformat }} каждый)
+                                </h6>
+                                <small class="text-muted">Потрачено: {{ group.wasted_space|filesizeformat }}</small>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled mb-0">
+                                    {% for file in group.files %}
+                                    <li class="mb-1">
+                                        <code class="small">{{ file.path }}</code>
+                                        <small class="text-muted ms-2">{{ file.modified|date:"d.m.Y H:i" }}</small>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        {% if duplicate_files.duplicate_groups|length > 10 %}
+                        <p class="text-muted fst-italic">
+                            ... и еще {{ duplicate_files.duplicate_groups|length|add:"-10" }} групп дубликатов
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Действия -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Действия</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'admin:file_management' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-cogs me-1"></i>Управление файлами
+                            </a>
+                            <a href="{% url 'admin:file_structure' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-sitemap me-1"></i>Структура файлов
+                            </a>
+                            <a href="{% url 'admin:file_statistics' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-chart-bar me-1"></i>Статистика
+                            </a>
+                            <button onclick="location.reload()" class="btn btn-outline-secondary">
+                                <i class="fas fa-sync-alt me-1"></i>Обновить диагностику
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript functionality moved to admin-utils.js -->
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">TranslationHub - Административная панель</a></h1>
+{% endblock %}
+
+{# Переопределяем блок с уведомлениями - убираем все, кроме критических ошибок #}
+{% block messages %}
+    {# Полностью убираем все уведомления из админки #}
+    {# Системные уведомления о создании команд и т.п. здесь не нужны #}
+{% endblock %}

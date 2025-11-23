@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_tags %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/chapters.css' %}">
+{% endblock %}
+{% block title %}{{ project.title }} - TranslationHub{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  {% csrf_token %}
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="{% url 'teams:team_detail' project.team.id %}">
+          <i class="fas fa-users me-1"></i>{{ project.team.name }}
+        </a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">
+        {{ project.title }}
+      </li>
+    </ol>
+  </nav>
+
+  <!-- Заголовок проекта -->
+  <div class="row mb-4">
+    <div class="col">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h1 class="h2 mb-2">{{ project.title }}</h1>
+          <div class="mb-3">
+            <span class="badge bg-secondary me-2"
+              >{{ project.get_project_type_display }}</span
+            >
+            <span class="badge bg-info me-2"
+              >{{ project.get_age_rating_display }}</span
+            >
+            <div class="status-info d-inline-block">
+              <span
+                class="{{ project.get_status_badge_class }} fs-6"
+                data-bs-toggle="tooltip"
+                title="{{ project.get_status_description }}"
+              >
+                <i class="{{ project.get_status_icon }} me-2"></i>
+                {{ project.get_status_display }}
+              </span>
+              <small class="text-muted ms-2"
+                >{{ project.get_status_description }}</small
+              >
+            </div>
+          </div>
+          <p class="text-muted mb-0">
+            <i class="fas fa-users me-1"></i>Команда: {{ project.team.name }}
+          </p>
+        </div>
+        {% if is_leader %}
+        <div class="d-flex gap-2">
+          <a
+            href="{% url 'projects:edit_project' project.pk %}"
+            class="btn btn-outline-primary"
+          >
+            <i class="fas fa-edit me-2"></i>Редактировать
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Описание и статистика -->
+  <div class="row mb-4">
+    {% if project.description %}
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Описание</h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-0">{{ project.description }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    
+    <!-- Статистика проекта -->
+    <div class="{% if project.description %}col-lg-4{% else %}col-12{% endif %}">
+      <div class="card h-100">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-bar me-2"></i>Статистика
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-4">
+              <div class="border-end">
+                <h4 class="text-primary mb-1">{{ chapters|length }}</h4>
+                <small class="text-muted">{{ chapters|length|russian_pluralize:"Глава,Главы,Глав" }}</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="border-end">
+                <h4 class="text-success mb-1">{{ completed_count }}</h4>
+                <small class="text-muted">{{ completed_count|russian_pluralize:"Завершена,Завершено,Завершено" }}</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <h4 class="text-info mb-1">{{ in_progress_count }}</h4>
+              <small class="text-muted">{{ in_progress_count|russian_pluralize:"В работе,В работе,В работе" }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Основной контент -->
+  <div class="row">
+    <div class="col-12">
+      <!-- Компонент отображения списка файлов -->
+      {% include 'projects/partials/file_list_display.html' %}
+
+      <!-- Материалы проекта -->
+      <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">
+            <i class="fas fa-book-open me-2 text-info"></i>Материалы
+          </h5>
+          <a href="{% url 'projects:create_material' project.pk %}" 
+             class="btn btn-info btn-sm">
+            <i class="fas fa-plus me-2"></i>Добавить материал
+          </a>
+        </div>
+
+        {% if materials %}
+          <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+            {% for material in materials %}
+              <div class="col">
+                <div class="card h-100">
+                  <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">{{ material.title }}</h6>
+                    <span class="badge bg-info">{{ material.get_material_type_display }}</span>
+                  </div>
+                  <div class="card-body">
+                    <p class="card-text text-muted small">
+                      {{ material.content|truncatewords:20 }}
+                    </p>
+                    <small class="text-muted">
+                      <i class="far fa-user me-1"></i>{{ material.created_by.display_name|default:material.created_by.username }}
+                      <br>
+                      <i class="far fa-calendar me-1"></i>{{ material.created_at|date:"d.m.Y" }}
+                    </small>
+                  </div>
+                  <div class="card-footer bg-transparent">
+                    <div class="d-flex gap-2">
+                      <a href="{% url 'projects:edit_material' project.pk material.id %}" 
+                         class="btn btn-sm btn-outline-primary flex-grow-1">
+                        <i class="fas fa-edit me-1"></i>Редактировать
+                      </a>
+                      <button type="button"
+                              class="btn btn-sm btn-outline-danger"
+                              onclick="deleteMaterial({{ material.id }}, '{{ material.title|escapejs }}')">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 bg-light rounded">
+            <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+            <h6 class="text-muted">Пока нет материалов</h6>
+            <p class="text-muted mb-3">
+              Добавьте описания героев, термины или заметки для команды
+            </p>
+            <a href="{% url 'projects:create_material' project.pk %}" 
+               class="btn btn-info btn-sm">
+              <i class="fas fa-plus me-2"></i>Добавить первый материал
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Главы проекта -->
+      <div class="mb-4">
+        <!-- Заголовок секции -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">
+            <i class="fas fa-book me-2 text-primary"></i>Главы
+          </h5>
+          <a href="{% url 'projects:create_chapter' project.pk %}" 
+             class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-2"></i>Добавить главу
+          </a>
+        </div>
+
+        {% if chapters %}
+          <!-- Grid-карточки глав -->
+          <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+              {% for chapter in chapters %}
+                <div class="col">
+                  <div class="card h-100 chapter-card">
+                    
+                    <!-- Заголовок карточки -->
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <h6 class="mb-0">{{ chapter.title }}</h6>
+                      <span class="{{ chapter.get_status_badge_class }}">
+                        {{ chapter.get_status_display }}
+                      </span>
+                    </div>
+
+                    <!-- Тело карточки -->
+                    <div class="card-body">
+                      
+                      <!-- Прогресс-бар -->
+                      <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                          <small class="text-muted">Прогресс</small>
+                          <small class="text-muted fw-bold">
+                            {{ chapter.get_completion_percentage }}%
+                          </small>
+                        </div>
+                        <div class="progress">
+                          <div class="progress-bar bg-primary" 
+                               role="progressbar"
+                               style="width: {{ chapter.get_completion_percentage }}%"
+                               aria-valuenow="{{ chapter.get_completion_percentage }}"
+                               aria-valuemin="0" 
+                               aria-valuemax="100">
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Метаданные -->
+                      <div class="chapter-meta d-flex flex-column gap-2 text-muted">
+                        {% if chapter.assignee %}
+                          <div>
+                            <i class="fas fa-user me-1"></i>
+                            <span>{{ chapter.assignee.display_name|default:chapter.assignee.username }}</span>
+                          </div>
+                        {% endif %}
+                        
+                        <div>
+                          <i class="far fa-calendar me-1"></i>
+                          <span>{{ chapter.created_at|date:"d.m.Y" }}</span>
+                        </div>
+                        
+                        <div>
+                          <i class="far fa-file me-1"></i>
+                          <span>{{ chapter.get_files_count }} {{ chapter.get_files_count|russian_pluralize:"файл,файла,файлов" }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Футер карточки -->
+                    <div class="card-footer bg-transparent">
+                      <div class="d-flex gap-2">
+                        <!-- Кнопка "Открыть" workspace -->
+                        <a href="{% url 'projects:chapter_workspace' project.pk chapter.pk %}" 
+                           class="btn btn-primary btn-sm flex-grow-1">
+                          <i class="fas fa-folder-open me-1"></i>Открыть
+                        </a>
+                        
+                        <!-- Кнопка "Скачать" - только при 100% -->
+                        {% if chapter.get_completion_percentage == 100 %}
+                        <a href="{% url 'projects:download_chapter_archive' project.pk chapter.pk %}" 
+                           class="btn btn-success btn-sm"
+                           data-bs-toggle="tooltip" 
+                           title="Скачать архив главы">
+                          <i class="fas fa-download"></i>
+                        </a>
+                        {% endif %}
+
+                        <!-- Кнопка "Удалить" -->
+                        <form method="post" 
+                              action="{% url 'projects:delete_chapter' project.pk chapter.id %}" 
+                              style="display: inline;"
+                              onsubmit="return confirm('Удалить главу \'{{ chapter.title }}\'? Все файлы будут удалены!');">
+                          {% csrf_token %}
+                          <button type="submit"
+                                  class="btn btn-outline-danger btn-sm"
+                                  data-bs-toggle="tooltip" 
+                                  title="Удалить главу">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+            {% endfor %}
+          </div>
+        
+        {% else %}
+          <!-- Empty state -->
+          <div class="text-center py-5">
+            <i class="fas fa-book fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">Пока нет глав</h5>
+            <p class="text-muted mb-3">
+              Добавьте первую главу для начала работы над проектом
+            </p>
+            <a href="{% url 'projects:create_chapter' project.pk %}" 
+               class="btn btn-primary">
+              <i class="fas fa-plus me-2"></i>Добавить первую главу
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Мобильные offcanvas панели -->
+  <!-- Файловый менеджер для мобильных -->
+  <div
+    class="offcanvas offcanvas-start"
+    tabindex="-1"
+    id="mobileFileManager"
+    aria-labelledby="mobileFileManagerLabel"
+  >
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="mobileFileManagerLabel">
+        <i class="fas fa-folder me-2"></i>Файловый менеджер
+      </h5>
+      <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="offcanvas"
+        aria-label="Close"
+      ></button>
+    </div>
+    <div class="offcanvas-body p-0">
+      {% include 'projects/partials/file_manager_panel.html' %}
+    </div>
+  </div>
+
+  <!-- База знаний для мобильных -->
+  <div
+    class="offcanvas offcanvas-end"
+    tabindex="-1"
+    id="mobileGlossary"
+    aria-labelledby="mobileGlossaryLabel"
+  >
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="mobileGlossaryLabel">
+        <i class="fas fa-book me-2"></i>База знаний
+      </h5>
+      <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="offcanvas"
+        aria-label="Close"
+      ></button>
+    </div>
+    <div class="offcanvas-body p-0">
+      {% include 'projects/partials/glossary_panel.html' %}
+    </div>
+  </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteMaterial(materialId, materialTitle) {
+    if (!confirm(`Удалить материал "${materialTitle}"?`)) return;
+    
+    fetch(`/projects/{{ project.id }}/materials/${materialId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Ошибка: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Ошибка при удалении материала');
+        console.error(error);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка кнопки "Готово"
+    document.querySelectorAll('.chapter-complete-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const chapterId = this.dataset.chapterId;
+            const newStatus = this.dataset.newStatus;
+            const projectId = {{ project.id }};
+            
+            if (!confirm('Отметить главу как готовую?')) return;
+            
+            try {
+                const response = await fetch(`/projects/${projectId}/chapters/${chapterId}/update-status/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            } catch (error) {
+                alert('Ошибка при обновлении статуса');
+                console.error(error);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

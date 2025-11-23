@@ -1,0 +1,474 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/chapter_workspace.css' %}">
+{% endblock %}
+
+{% block title %}{{ chapter.title }} - Workspace{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  {% csrf_token %}
+  
+  <!-- Топбар -->
+  <div class="bg-primary text-white py-2 px-3">
+    <div class="d-flex align-items-center gap-3">
+      <small class="text-white-50">
+        <a href="{% url 'teams:team_detail' project.team.id %}" class="text-white-50 text-decoration-none">
+          {{ project.team.name }}
+        </a>
+        /
+        <a href="{% url 'projects:project_detail' project.pk %}" class="text-white-50 text-decoration-none">
+          {{ project.title }}
+        </a>
+      </small>
+      <strong>{{ chapter.title }}</strong>
+      
+      <!-- Исполнитель -->
+      <div class="d-flex align-items-center gap-2">
+        <small class="text-white-50">Исполнитель:</small>
+        <select class="form-select form-select-sm" id="assigneeSelect" style="width: auto; min-width: 150px;">
+          <option value="">Не назначен</option>
+          {% for member in team_members %}
+            <option value="{{ member.id }}" {% if chapter.assignee and chapter.assignee.id == member.id %}selected{% endif %}>
+              {{ member.display_name|default:member.username }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="ms-auto d-flex gap-2">
+        <button class="btn btn-light btn-sm" 
+                data-bs-toggle="offcanvas" 
+                data-bs-target="#fileManagerOffcanvas">
+          <i class="fas fa-folder me-1"></i>Файлы
+        </button>
+        <button class="btn btn-light btn-sm" id="saveBtn">
+          <i class="fas fa-save me-1"></i>Сохранить
+        </button>
+        {% if allowed_statuses %}
+          {% for status_code, status_name in allowed_statuses %}
+            {% if forloop.first %}
+              {% if status_code != 'raw' %}
+                <button class="btn btn-success btn-sm" id="completeWorkBtn"
+                        data-status="{{ status_code }}"
+                        data-status-name="{{ status_name }}">
+                  <i class="fas fa-check me-1"></i>Готово
+                </button>
+              {% endif %}
+            {% elif status_code == 'raw' or status_code == 'translating' or status_code == 'editing' %}
+              <button class="btn btn-warning btn-sm" id="returnWorkBtn"
+                      data-status="{{ status_code }}"
+                      data-status-name="{{ status_name }}">
+                <i class="fas fa-undo me-1"></i>На доработку
+              </button>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Основной контейнер -->
+  <div class="workspace-container">
+
+    <!-- Центральная область (на всю ширину) -->
+    <div class="workspace-main" style="flex: 1; width: 100%;">
+      <div class="workspace-content">
+        
+        <!-- Превью RAW -->
+        <div class="preview-panel">
+          <div id="previewContainer">
+            <div class="text-center text-muted py-5">
+              <i class="fas fa-image fa-3x mb-3"></i>
+              <p>Выберите файл для просмотра</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Редактор перевода -->
+        <div class="editor-panel">
+          <div class="p-2 bg-light border-bottom">
+            <small class="text-muted">
+              <i class="fas fa-edit me-1"></i>
+              Редактор перевода
+            </small>
+          </div>
+          <textarea class="editor-textarea" 
+                    id="translationEditor" 
+                    placeholder="Введите текст перевода..."></textarea>
+        </div>
+
+      </div>
+
+      <!-- Нижняя панель -->
+      <div class="workspace-footer">
+        <div class="progress-text">
+          <i class="fas fa-tasks me-2"></i>
+          Прогресс: <span id="currentFileNum">0</span> / <span id="totalFiles">0</span>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary" id="prevFileBtn">
+            <i class="fas fa-chevron-left"></i> Предыдущий
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" id="nextFileBtn">
+            Следующий <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Правая панель - База знаний и Комментарии -->
+    <div class="workspace-context">
+      <!-- База знаний -->
+      <div class="p-3 border-bottom bg-light">
+        <h6 class="mb-0">
+          <i class="fas fa-database me-2"></i>База знаний
+        </h6>
+      </div>
+      
+      <div class="p-3 border-bottom">
+        <div class="text-muted text-center py-3">
+          <i class="fas fa-database fa-2x mb-2"></i>
+          <p><small>База знаний проекта</small></p>
+          <a href="{% url 'glossary:glossary_list' project.pk %}" 
+             class="btn btn-sm btn-outline-primary" target="_blank">
+            Открыть базу знаний
+          </a>
+        </div>
+      </div>
+      
+      <!-- Комментарии -->
+      <div class="p-3 border-bottom bg-light">
+        <h6 class="mb-0">
+          <i class="fas fa-comments me-2"></i>Комментарии
+        </h6>
+      </div>
+      
+      <div class="p-3" style="max-height: 400px; overflow-y: auto;">
+        <div id="commentsList">
+          {% if comments %}
+            {% for comment in comments %}
+            <div class="mb-3 pb-3 border-bottom" data-file-path="{{ comment.file_path|default:'' }}">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <small class="fw-bold">{{ comment.user.display_name|default:comment.user.username }}</small>
+                  {% if comment.file_path %}
+                  <div class="badge bg-secondary text-white mt-1">
+                    <i class="fas fa-file me-1"></i>{{ comment.file_path }}
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                  <small class="text-muted">{{ comment.created_at|timesince }} назад</small>
+                  {% if comment.user == user or user in project.team.leaders %}
+                  <form method="post" 
+                        action="{% url 'projects:delete_comment' project.pk chapter.pk comment.pk %}" 
+                        style="display: inline;"
+                        onsubmit="return confirm('Удалить комментарий?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link btn-sm text-danger p-0" title="Удалить">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </form>
+                  {% endif %}
+                </div>
+              </div>
+              <p class="mb-0 small">{{ comment.text }}</p>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-muted text-center py-3">
+              <i class="fas fa-comments fa-2x mb-2"></i>
+              <p class="mb-0"><small>Комментариев пока нет</small></p>
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Форма добавления комментария -->
+        <div class="mt-3">
+          <form method="post" action="{% url 'projects:add_comment' project.pk chapter.pk %}" id="commentForm">
+            {% csrf_token %}
+            <input type="hidden" name="file_path" id="commentFilePath" value="">
+            <div id="commentFileInfo" class="mb-2 small text-muted" style="display: none;">
+              <i class="fas fa-file me-1"></i>
+              <span id="commentFileName"></span>
+              <button type="button" class="btn btn-link btn-sm p-0 ms-2" onclick="clearCommentFile()">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <textarea class="form-control form-control-sm" 
+                      name="comment_text"
+                      rows="2" 
+                      maxlength="1000"
+                      placeholder="Добавить комментарий..."
+                      required></textarea>
+            <button type="submit" class="btn btn-primary btn-sm mt-2 w-100">
+              <i class="fas fa-paper-plane me-1"></i>Отправить
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Offcanvas - Файловый менеджер -->
+<div class="offcanvas offcanvas-start" 
+     tabindex="-1" 
+     id="fileManagerOffcanvas" 
+     aria-labelledby="fileManagerOffcanvasLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="fileManagerOffcanvasLabel">
+      <i class="fas fa-folder me-2"></i>Файловый менеджер
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body p-0">
+    {% include 'projects/partials/workspace_file_manager.html' %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Workspace JavaScript
+(function() {
+  'use strict';
+  
+  const projectId = {{ project.pk }};
+  const chapterId = {{ chapter.pk }};
+  let currentFile = null;
+  let allFiles = [];
+  
+  // Инициализация файлов
+  function initFileList() {
+    allFiles = [];
+    
+    // Собираем только RAW файлы для навигации
+    document.querySelectorAll('.file-item[data-folder="raw"]').forEach(item => {
+      allFiles.push({
+        folder: item.dataset.folder,
+        filename: item.dataset.filename,
+        path: item.dataset.path,
+        element: item
+      });
+    });
+    
+    // Обновляем счётчик (только RAW файлы)
+    document.getElementById('totalFiles').textContent = allFiles.length;
+    
+    // Клик по файлу (для всех файлов, не только RAW)
+    document.querySelectorAll('.file-item').forEach(item => {
+      item.addEventListener('click', function() {
+        loadFile(this.dataset.folder, this.dataset.filename, this.dataset.path);
+        
+        // Активный файл
+        document.querySelectorAll('.file-item').forEach(f => f.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Обновляем номер (только для RAW файлов)
+        if (this.dataset.folder === 'raw') {
+          const index = allFiles.findIndex(f => f.path === this.dataset.path);
+          document.getElementById('currentFileNum').textContent = index + 1;
+        }
+      });
+    });
+  }
+  
+  // Вызываем инициализацию при загрузке
+  initFileList();
+  
+  // Автоматически раскрываем первую папку с файлами
+  const firstGroup = document.querySelector('.group-header');
+  if (firstGroup) {
+    const firstGroupFiles = firstGroup.nextElementSibling;
+    if (firstGroupFiles && firstGroupFiles.children.length > 0) {
+      // Не раскрываем, если папка пустая (только текст "Пусто")
+      const hasFiles = firstGroupFiles.querySelector('.file-item');
+      if (hasFiles) {
+        firstGroup.click();
+      }
+    }
+  }
+  
+  // Загрузка файла по базовому имени
+  function loadFile(folder, filename, path) {
+    currentFile = { folder, filename, path };
+    
+    // Получаем базовое имя без расширения
+    const baseName = filename.replace(/\.[^.]+$/, '');
+    
+    // Загружаем RAW изображение
+    const rawUrl = `/projects/${projectId}/chapters/${chapterId}/download/raw/${baseName}.jpg`;
+    document.getElementById('previewContainer').innerHTML = 
+      `<img src="${rawUrl}" class="preview-img" alt="${baseName}.jpg" onerror="this.parentElement.innerHTML='<div class=\\'text-center text-muted py-5\\'><i class=\\'fas fa-exclamation-triangle fa-3x mb-3\\'></i><p>Изображение не найдено</p></div>'">`;
+    
+    // Загружаем текст перевода
+    const translationUrl = `/projects/${projectId}/chapters/${chapterId}/download/translation/${baseName}.txt`;
+    fetch(translationUrl)
+      .then(r => {
+        if (!r.ok) throw new Error('File not found');
+        return r.text();
+      })
+      .then(text => {
+        document.getElementById('translationEditor').value = text;
+      })
+      .catch(() => {
+        document.getElementById('translationEditor').value = '';
+      });
+  }
+  
+  // Сохранение
+  document.getElementById('saveBtn').addEventListener('click', function() {
+    if (!currentFile) {
+      alert('Выберите файл');
+      return;
+    }
+    
+    const content = document.getElementById('translationEditor').value;
+    const translationPath = `translation/${currentFile.filename.replace(/\.[^.]+$/, '.txt')}`;
+    
+    fetch(`/projects/${projectId}/chapters/${chapterId}/save-translation/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: JSON.stringify({
+        file_path: translationPath,
+        content: content
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        alert('Сохранено!');
+      } else {
+        alert('Ошибка: ' + data.error);
+      }
+    });
+  });
+  
+  // Назначение исполнителя
+  document.getElementById('assigneeSelect').addEventListener('change', function() {
+    const assigneeId = this.value || null;
+    
+    fetch(`/projects/${projectId}/chapters/${chapterId}/update-status/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: JSON.stringify({ assignee_id: assigneeId })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        console.log('Исполнитель назначен');
+      } else {
+        alert('Ошибка: ' + data.error);
+      }
+    })
+    .catch(err => {
+      alert('Ошибка при назначении исполнителя');
+      console.error(err);
+    });
+  });
+  
+  // Кнопка "Готово"
+  const completeBtn = document.getElementById('completeWorkBtn');
+  if (completeBtn) {
+    completeBtn.addEventListener('click', function() {
+      const newStatus = this.dataset.status;
+      const statusName = this.dataset.statusName;
+      
+      if (!confirm(`Завершить работу и передать главу на этап "${statusName}"?`)) return;
+      
+      fetch(`/projects/${projectId}/chapters/${chapterId}/update-status/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          // Если статус изменён на "done", скачиваем архив
+          if (newStatus === 'done') {
+            window.location.href = `/projects/${projectId}/chapters/${chapterId}/download-archive/`;
+            setTimeout(() => {
+              alert('Работа завершена! Архив главы скачивается.');
+              window.location.href = `/projects/${projectId}/`;
+            }, 500);
+          } else {
+            alert('Работа завершена! Глава передана на следующий этап.');
+            window.location.href = `/projects/${projectId}/`;
+          }
+        } else {
+          alert('Ошибка: ' + data.error);
+        }
+      })
+      .catch(err => {
+        alert('Ошибка при обновлении статуса');
+        console.error(err);
+      });
+    });
+  }
+  
+  // Кнопка "На доработку"
+  const returnBtn = document.getElementById('returnWorkBtn');
+  if (returnBtn) {
+    returnBtn.addEventListener('click', function() {
+      const newStatus = this.dataset.status;
+      const statusName = this.dataset.statusName;
+      
+      if (!confirm(`Вернуть главу на доработку на этап "${statusName}"?`)) return;
+      
+      fetch(`/projects/${projectId}/chapters/${chapterId}/update-status/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          alert('Глава возвращена на доработку.');
+          window.location.reload();
+        } else {
+          alert('Ошибка: ' + data.error);
+        }
+      })
+      .catch(err => {
+        alert('Ошибка при обновлении статуса');
+        console.error(err);
+      });
+    });
+  }
+  
+  // Навигация
+  document.getElementById('prevFileBtn').addEventListener('click', () => navigateFile(-1));
+  document.getElementById('nextFileBtn').addEventListener('click', () => navigateFile(1));
+  
+  function navigateFile(direction) {
+    if (!currentFile) return;
+    
+    const currentIndex = allFiles.findIndex(f => f.path === currentFile.path);
+    const newIndex = currentIndex + direction;
+    
+    if (newIndex >= 0 && newIndex < allFiles.length) {
+      allFiles[newIndex].element.click();
+    }
+  }
+  
+})();
+</script>
+{% endblock %}

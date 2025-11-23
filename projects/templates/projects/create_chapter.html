@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Добавить главу - {{ project.title }} - TranslationHub{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="{% url 'teams:team_detail' project.team.id %}">
+          <i class="fas fa-users me-1"></i>{{ project.team.name }}
+        </a>
+      </li>
+      <li class="breadcrumb-item">
+        <a href="{% url 'projects:project_detail' project.pk %}">{{ project.title }}</a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">Добавить главу</li>
+    </ol>
+  </nav>
+
+  <!-- Заголовок -->
+  <div class="row mb-4">
+    <div class="col">
+      <h1 class="h2 mb-2">
+        <i class="fas fa-plus me-2"></i>Добавить главу
+      </h1>
+      <p class="text-muted">Проект: {{ project.title }}</p>
+    </div>
+  </div>
+
+  <!-- Форма создания главы -->
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-book me-2"></i>Новая глава
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            
+            <!-- Поле названия главы -->
+            <div class="mb-3">
+              {{ form.title.label_tag }}
+              {{ form.title }}
+              {% if form.title.help_text %}
+                <div class="form-text">{{ form.title.help_text }}</div>
+              {% endif %}
+              {% if form.title.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for error in form.title.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Информация о структуре папок -->
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Автоматическое создание папок:</strong><br>
+              При создании главы автоматически будут созданы папки для всех этапов перевода:
+              <ul class="mb-0 mt-2">
+                <li><strong>raw</strong> - исходные материалы</li>
+                <li><strong>translation</strong> - переводы</li>
+                <li><strong>cleaning</strong> - очистка</li>
+                <li><strong>typesetting</strong> - тайпинг</li>
+                <li><strong>editing</strong> - редактура</li>
+                <li><strong>final</strong> - финальные файлы</li>
+              </ul>
+            </div>
+
+            <!-- Кнопки -->
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'projects:project_detail' project.pk %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Отмена
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Создать главу
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

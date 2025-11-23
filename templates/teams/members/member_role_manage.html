@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Управление ролями: {{ member_user.username }} - {{ team.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 800px;">
+  <!-- Breadcrumb навигация -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="{% url 'teams:team_detail' team.pk %}">
+          <i class="fas fa-users me-1"></i>{{ team.name }}
+        </a>
+      </li>
+      <li class="breadcrumb-item">
+        <a href="{% url 'teams:team_member_list' team.pk %}">
+          <i class="fas fa-user-friends me-1"></i>Участники
+        </a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">
+        <i class="fas fa-user-tag me-1"></i>Управление ролями
+      </li>
+    </ol>
+  </nav>
+
+  <!-- Заголовок -->
+  <div class="mb-4">
+    <h1 class="h3 mb-2">
+      <i class="fas fa-user-tag me-2"></i>Управление ролями участника
+    </h1>
+    <p class="text-muted">
+      Выберите роли для пользователя {{ member_user.display_name|default:member_user.username }}
+    </p>
+  </div>
+
+  <!-- Карточка с информацией о пользователе -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <div class="d-flex align-items-center">
+        {% if member_user.avatar %}
+        <img 
+          src="{{ member_user.avatar.url }}" 
+          class="rounded-circle me-3" 
+          width="64" 
+          height="64" 
+          alt="Аватар {{ member_user.username }}"
+          style="object-fit: cover">
+        {% else %}
+        <div 
+          class="rounded-circle d-flex align-items-center justify-content-center me-3"
+          style="width: 64px; height: 64px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+          <i class="fas fa-user text-white fs-3"></i>
+        </div>
+        {% endif %}
+        <div>
+          <h5 class="mb-1">{{ member_user.display_name|default:member_user.username }}</h5>
+          <p class="text-muted mb-0">
+            <i class="fas fa-envelope me-1"></i>{{ member_user.email }}
+          </p>
+          <p class="text-muted mb-0">
+            <i class="fas fa-calendar-plus me-1"></i>В команде с {{ membership.joined_at|date:"d.m.Y" }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Форма управления ролями -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">
+        <i class="fas fa-tags me-2"></i>Выбор ролей
+      </h5>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">
+          {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <!-- Обычные роли -->
+        <div class="mb-4">
+          <label class="form-label fw-bold">
+            <i class="fas fa-check-square me-1"></i>Роли участника
+          </label>
+          <p class="text-muted small mb-3">
+            Выберите одну или несколько ролей для участника.
+          </p>
+          
+          {% for checkbox in form.role_ids %}
+            {% if checkbox.choice_label != "Руководитель" %}
+            <div class="form-check mb-2">
+              {{ checkbox.tag }}
+              <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                <strong>{{ checkbox.choice_label }}</strong>
+                {% if checkbox.choice_label == "Редактор" %}
+                <span class="badge text-bg-info ms-2">
+                  <i class="fas fa-edit me-1"></i>Проверка переводов
+                </span>
+                {% elif checkbox.choice_label == "Переводчик" %}
+                <span class="badge text-bg-primary ms-2">
+                  <i class="fas fa-language me-1"></i>Создание переводов
+                </span>
+                {% elif checkbox.choice_label == "Клинер" %}
+                <span class="badge text-bg-success ms-2">
+                  <i class="fas fa-broom me-1"></i>Обработка изображений
+                </span>
+                {% elif checkbox.choice_label == "Тайпер" %}
+                <span class="badge text-bg-warning ms-2">
+                  <i class="fas fa-keyboard me-1"></i>Типографика
+                </span>
+                {% endif %}
+              </label>
+            </div>
+            {% endif %}
+          {% endfor %}
+          
+          {% if form.role_ids.errors %}
+          <div class="invalid-feedback d-block">
+            {{ form.role_ids.errors }}
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Роль руководителя (отдельная секция с предупреждением) -->
+        <div class="mb-4">
+          <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+              <h6 class="mb-0">
+                <a 
+                  class="text-white text-decoration-none d-flex justify-content-between align-items-center" 
+                  data-bs-toggle="collapse" 
+                  href="#leaderRoleSection" 
+                  role="button" 
+                  aria-expanded="false" 
+                  aria-controls="leaderRoleSection">
+                  <span>
+                    <i class="fas fa-crown me-2"></i>Передача прав руководителя
+                  </span>
+                  <i class="fas fa-chevron-down"></i>
+                </a>
+              </h6>
+            </div>
+            <div class="collapse" id="leaderRoleSection">
+              <div class="card-body">
+                <div class="alert alert-danger mb-3" role="alert">
+                  <div class="d-flex align-items-start">
+                    <i class="fas fa-exclamation-triangle fs-4 me-3 mt-1"></i>
+                    <div>
+                      <h6 class="alert-heading mb-2">Внимание!</h6>
+                      <p class="mb-2">
+                        Роль "Руководитель" дает полные права управления командой, включая:
+                      </p>
+                      <ul class="mb-2 small">
+                        <li>Управление всеми участниками</li>
+                        <li>Изменение статуса команды</li>
+                        <li>Управление проектами</li>
+                        <li>Все права редактирования контента</li>
+                      </ul>
+                      <p class="mb-0 small">
+                        <strong>Назначайте эту роль только доверенным участникам!</strong>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <p class="mb-3">
+                  Передача прав руководителя - это серьезное действие, которое требует отдельного подтверждения.
+                </p>
+                <a href="{% url 'teams:leadership_transfer' team.pk member_user.pk %}" class="btn btn-danger w-100">
+                  <i class="fas fa-exchange-alt me-2"></i>Передать права руководителя этому участнику
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-2"></i>Сохранить изменения
+          </button>
+          <a href="{% url 'teams:team_member_list' team.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-times me-2"></i>Отмена
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

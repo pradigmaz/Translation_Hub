@@ -1,0 +1,31 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Создать стандартные роли{% endblock %}
+
+{% block content %}
+<div class="content">
+    <h1>Создать стандартные роли</h1>
+    
+    <p>Эта операция создаст следующие стандартные роли системы:</p>
+    
+    <ul>
+        <li><strong>Руководитель</strong> - полные права управления командой</li>
+        <li><strong>Переводчик</strong> - перевод текста</li>
+        <li><strong>Редактор</strong> - редактирование и проверка перевода</li>
+        <li><strong>Клинер</strong> - очистка изображений</li>
+        <li><strong>Тайпер</strong> - наложение текста</li>
+        <li><strong>Пользователь</strong> - базовая роль</li>
+    </ul>
+    
+    <p><strong>Примечание:</strong> Роли, которые уже существуют, не будут изменены.</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div>
+            <input type="submit" value="Создать стандартные роли" class="default" />
+            <a href="{% url 'admin:teams_role_changelist' %}" class="button cancel-link">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

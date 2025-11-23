@@ -1,0 +1,27 @@
+<!-- Модальное окно опасного действия (удаление проекта) -->
+{% extends "components/modals/modal_base.html" %}
+
+{% block modal_content %}
+<div class="modal-header bg-danger text-white">
+    <h5 class="modal-title" id="{{ modal_id }}Label">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ title }}
+    </h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+</div>
+<div class="modal-body">
+    {{ body_content|safe }}
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+        <i class="fas fa-arrow-left me-2"></i>Отмена
+    </button>
+    {% if secondary_btn_id %}
+    <button type="button" class="btn btn-success me-2" id="{{ secondary_btn_id }}">
+        <i class="fas fa-download me-2"></i>{{ secondary_btn_text }}
+    </button>
+    {% endif %}
+    <button type="button" class="btn btn-danger" id="{{ confirm_btn_id }}">
+        <i class="fas fa-trash-alt me-2"></i>{{ confirm_text }}
+    </button>
+</div>
+{% endblock %}

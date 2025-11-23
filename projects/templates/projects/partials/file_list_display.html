@@ -1,0 +1,325 @@
+{% load static %}
+
+<!-- Компонент отображения списка файлов -->
+<div id="file-list-display" class="card" style="display: none;">
+  <div class="card-header">
+    <h6 class="mb-0 d-flex justify-content-between align-items-center">
+      <span>
+        <i class="fas fa-files me-2"></i>
+        <span id="file-list-folder-name">Файлы</span>
+      </span>
+      <button type="button" class="btn-close btn-sm" onclick="hideFileList()"></button>
+    </h6>
+  </div>
+  <div class="card-body">
+    <!-- Загрузка -->
+    <div id="file-list-loading" class="text-center py-3" style="display: none;">
+      <div class="spinner-border spinner-border-sm text-primary" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+      </div>
+      <div class="mt-2">
+        <small class="text-muted">Загружаем файлы...</small>
+      </div>
+    </div>
+    
+    <!-- Список файлов -->
+    <div id="file-list-content">
+      <!-- Пустой список -->
+      <div id="file-list-empty" class="text-center py-4" style="display: none;">
+        <i class="fas fa-folder-open fa-2x text-muted mb-3"></i>
+        <p class="text-muted mb-0">Папка пуста</p>
+        <small class="text-muted">Загрузите файлы для начала работы</small>
+      </div>
+      
+      <!-- Контейнер для файлов -->
+      <div id="file-list-items" class="list-group list-group-flush">
+        <!-- Файлы будут добавлены динамически -->
+      </div>
+    </div>
+    
+    <!-- Ошибка загрузки -->
+    <div id="file-list-error" class="alert alert-danger" style="display: none;">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      <span id="file-list-error-message">Ошибка загрузки файлов</span>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- JavaScript для работы со списком файлов -->
+<script>
+// Функция для отображения списка файлов
+function displayFolderFiles(files, folder, chapterTitle) {
+    const fileListDisplay = document.getElementById('file-list-display');
+    const folderNameElement = document.getElementById('file-list-folder-name');
+    const fileListItems = document.getElementById('file-list-items');
+    const fileListEmpty = document.getElementById('file-list-empty');
+    const fileListLoading = document.getElementById('file-list-loading');
+    const fileListError = document.getElementById('file-list-error');
+    
+    // Скрываем загрузку и ошибки
+    fileListLoading.style.display = 'none';
+    fileListError.style.display = 'none';
+    
+    // Обновляем заголовок
+    const folderDisplayNames = {
+        'raw': 'RAW - Исходные материалы',
+        'translation': 'Translation - Переводы',
+        'cleaning': 'Cleaning - Очистка',
+        'typesetting': 'Typesetting - Тайпинг',
+        'editing': 'Editing - Редактура',
+        'final': 'Final - Финальные файлы'
+    };
+    
+    folderNameElement.textContent = `${folderDisplayNames[folder] || folder} (${chapterTitle})`;
+    
+    // Очищаем список файлов
+    fileListItems.innerHTML = '';
+    
+    if (files.length === 0) {
+        // Показываем сообщение о пустой папке
+        fileListEmpty.style.display = 'block';
+        fileListItems.style.display = 'none';
+    } else {
+        // Скрываем сообщение о пустой папке
+        fileListEmpty.style.display = 'none';
+        fileListItems.style.display = 'block';
+        
+        // Добавляем файлы в список
+        files.forEach(function(file) {
+            const fileItem = createFileListItem(file);
+            fileListItems.appendChild(fileItem);
+        });
+    }
+    
+    // Показываем компонент
+    fileListDisplay.style.display = 'block';
+    fileListDisplay.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Функция для создания элемента файла в списке
+function createFileListItem(file) {
+    const listItem = document.createElement('div');
+    listItem.className = 'list-group-item list-group-item-action py-3';
+    
+    // Определяем иконку файла по расширению
+    const fileIcon = getFileIcon(file.name);
+    
+    // Форматируем размер файла
+    const fileSize = formatFileSize(file.size);
+    
+    // Форматируем дату изменения
+    const fileDate = formatFileDate(file.modified);
+    
+    listItem.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center flex-grow-1">
+                <div class="text-center me-3" style="width: 24px;">
+                    <i class="${fileIcon}"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-medium text-body">${escapeHtml(file.name)}</div>
+                    <div class="d-flex gap-3">
+                        <small class="text-muted">${fileSize}</small>
+                        <small class="text-muted">${fileDate}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="${file.url}" class="btn btn-outline-primary btn-sm opacity-0 download-btn" 
+                   title="Скачать файл" download>
+                    <i class="fas fa-download"></i>
+                </a>
+            </div>
+        </div>
+    `;
+    
+    // Добавляем обработчики для показа кнопки скачивания
+    listItem.addEventListener('mouseenter', function() {
+        const downloadBtn = this.querySelector('.download-btn');
+        if (downloadBtn) {
+            downloadBtn.classList.remove('opacity-0');
+            downloadBtn.classList.add('opacity-100');
+        }
+    });
+    
+    listItem.addEventListener('mouseleave', function() {
+        const downloadBtn = this.querySelector('.download-btn');
+        if (downloadBtn && !downloadBtn.matches(':focus')) {
+            downloadBtn.classList.remove('opacity-100');
+            downloadBtn.classList.add('opacity-0');
+        }
+    });
+    
+    // Обработчик для фокуса на кнопке скачивания
+    const downloadBtn = listItem.querySelector('.download-btn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('focus', function() {
+            this.classList.remove('opacity-0');
+            this.classList.add('opacity-100');
+        });
+        
+        downloadBtn.addEventListener('blur', function() {
+            if (!listItem.matches(':hover')) {
+                this.classList.remove('opacity-100');
+                this.classList.add('opacity-0');
+            }
+        });
+    }
+    
+    return listItem;
+}
+
+// Функция для определения иконки файла
+function getFileIcon(filename) {
+    const extension = filename.split('.').pop().toLowerCase();
+    
+    const iconMap = {
+        // Изображения
+        'jpg': 'fas fa-image text-primary',
+        'jpeg': 'fas fa-image text-primary',
+        'png': 'fas fa-image text-primary',
+        'gif': 'fas fa-image text-primary',
+        'bmp': 'fas fa-image text-primary',
+        'webp': 'fas fa-image text-primary',
+        
+        // Документы
+        'pdf': 'fas fa-file-pdf text-danger',
+        'doc': 'fas fa-file-word text-primary',
+        'docx': 'fas fa-file-word text-primary',
+        'txt': 'fas fa-file-alt text-secondary',
+        'rtf': 'fas fa-file-alt text-secondary',
+        
+        // Архивы
+        'zip': 'fas fa-file-archive text-warning',
+        'rar': 'fas fa-file-archive text-warning',
+        '7z': 'fas fa-file-archive text-warning',
+        'tar': 'fas fa-file-archive text-warning',
+        'gz': 'fas fa-file-archive text-warning',
+        
+        // Таблицы
+        'xls': 'fas fa-file-excel text-success',
+        'xlsx': 'fas fa-file-excel text-success',
+        'csv': 'fas fa-file-csv text-success',
+        
+        // Презентации
+        'ppt': 'fas fa-file-powerpoint text-danger',
+        'pptx': 'fas fa-file-powerpoint text-danger',
+        
+        // Видео
+        'mp4': 'fas fa-file-video text-info',
+        'avi': 'fas fa-file-video text-info',
+        'mkv': 'fas fa-file-video text-info',
+        'mov': 'fas fa-file-video text-info',
+        
+        // Аудио
+        'mp3': 'fas fa-file-audio text-success',
+        'wav': 'fas fa-file-audio text-success',
+        'flac': 'fas fa-file-audio text-success',
+    };
+    
+    return iconMap[extension] || 'fas fa-file text-secondary';
+}
+
+// Функция для форматирования размера файла
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Функция для форматирования даты файла
+function formatFileDate(timestamp) {
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) {
+        return 'Вчера';
+    } else if (diffDays < 7) {
+        return `${diffDays} дн. назад`;
+    } else {
+        return date.toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+}
+
+// Функция для экранирования HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Функция для скрытия списка файлов
+function hideFileList() {
+    const fileListDisplay = document.getElementById('file-list-display');
+    fileListDisplay.style.display = 'none';
+    
+    // Убираем активный класс с папок
+    document.querySelectorAll('.folder-item').forEach(function(item) {
+        item.classList.remove('active');
+        item.style.borderLeft = '';
+    });
+}
+
+// Функция для показа загрузки файлов
+function showFileListLoading() {
+    const fileListDisplay = document.getElementById('file-list-display');
+    const fileListLoading = document.getElementById('file-list-loading');
+    const fileListError = document.getElementById('file-list-error');
+    const fileListEmpty = document.getElementById('file-list-empty');
+    const fileListItems = document.getElementById('file-list-items');
+    
+    // Скрываем все кроме загрузки
+    fileListError.style.display = 'none';
+    fileListEmpty.style.display = 'none';
+    fileListItems.style.display = 'none';
+    fileListLoading.style.display = 'block';
+    
+    // Показываем компонент если скрыт
+    if (fileListDisplay.style.display === 'none') {
+        fileListDisplay.style.display = 'block';
+    }
+}
+
+// Функция для показа ошибки загрузки файлов
+function showFileListError(errorMessage) {
+    const fileListError = document.getElementById('file-list-error');
+    const fileListErrorMessage = document.getElementById('file-list-error-message');
+    const fileListLoading = document.getElementById('file-list-loading');
+    const fileListEmpty = document.getElementById('file-list-empty');
+    const fileListItems = document.getElementById('file-list-items');
+    
+    // Скрываем все кроме ошибки
+    fileListLoading.style.display = 'none';
+    fileListEmpty.style.display = 'none';
+    fileListItems.style.display = 'none';
+    
+    // Показываем ошибку
+    fileListErrorMessage.textContent = errorMessage;
+    fileListError.style.display = 'block';
+}
+
+// Функция для обновления списка файлов после загрузки
+function refreshFileListAfterUpload(chapterId, folder) {
+    // Проверяем, отображается ли сейчас эта папка
+    const activeFolder = document.querySelector('.folder-item.active');
+    if (activeFolder && 
+        activeFolder.dataset.folder === folder && 
+        activeFolder.dataset.chapterId === chapterId) {
+        
+        // Перезагружаем список файлов
+        loadFolderFiles(chapterId, folder);
+    }
+}
+</script>

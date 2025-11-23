@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Поиск: {{ team.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'teams:team_detail' team.pk %}">{{ team.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'teams:team_member_list' team.pk %}">Участники</a></li>
+      <li class="breadcrumb-item active">Поиск</li>
+    </ol>
+  </nav>
+
+  <h1 class="mb-4">Поиск пользователей</h1>
+
+  <form method="get" class="mb-4">
+    <div class="input-group">
+      <input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="Имя или email" required minlength="2">
+      <button type="submit" class="btn btn-primary">Найти</button>
+    </div>
+    <small class="text-muted">Минимум 2 символа</small>
+  </form>
+
+  {% if search_query %}
+    {% if has_results %}
+    <div class="list-group">
+      {% for user in users %}
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-1">{{ user.display_name|default:user.username }}</h5>
+          <small class="text-muted">{{ user.email }}</small>
+        </div>
+        <a href="{% url 'teams:team_member_add' team.pk %}?user_id={{ user.pk }}" class="btn btn-sm btn-success">Добавить</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">Пользователи не найдены</div>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+<!-- Информационное модальное окно с 1 кнопкой -->
+{% extends "components/modals/modal_base.html" %}
+
+{% block modal_content %}
+<div class="modal-header {% if variant %}text-bg-{{ variant }}{% endif %} border-{% if variant %}0{% else %}bottom-0{% endif %}">
+    <h5 class="modal-title fw-bold" id="{{ modal_id }}Label">
+        {% if icon %}<i class="{{ icon }} me-2"></i>{% endif %}{{ title }}
+    </h5>
+    <button type="button" class="btn-close {% if variant %}btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+</div>
+<div class="modal-body text-center py-4">
+    {{ body_content|safe }}
+</div>
+<div class="modal-footer border-0 {% if center_button %}justify-content-center{% else %}flex-column align-items-stretch w-100 gap-2 pb-3{% endif %}">
+    <button type="button" class="btn btn-lg btn-{{ btn_variant|default:'secondary' }}" {% if btn_id %}id="{{ btn_id }}"{% else %}data-bs-dismiss="modal"{% endif %}>
+        {% if btn_icon %}<i class="{{ btn_icon }} me-2"></i>{% endif %}{{ btn_text }}
+    </button>
+</div>
+{% endblock %}

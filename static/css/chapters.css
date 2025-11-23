@@ -1,0 +1,42 @@
+/* 
+ * Стили для grid-карточек глав
+ * Минималистичный подход с использованием Bootstrap
+ */
+
+/* Карточка главы */
+.chapter-card {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    border: 1px solid #dee2e6;
+}
+
+.chapter-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Прогресс-бар */
+.progress {
+    background-color: #e9ecef;
+    height: 8px;
+}
+
+.progress-bar {
+    transition: width 0.3s ease;
+}
+
+/* Бейдж для purple статуса (typesetting) */
+.bg-purple {
+    background-color: #6f42c1;
+}
+
+/* Метаданные в карточке */
+.chapter-meta {
+    font-size: 0.875rem;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .chapter-card {
+        margin-bottom: 1rem;
+    }
+}

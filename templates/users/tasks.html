@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load form_tags %}
+
+{% block title %}Мои задачи{% endblock %}
+
+{% block content %}
+
+{% include "users/components/user_header.html" %}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h2 mb-0">
+                    <i class="fas fa-tasks me-2 text-primary"></i>Мои задачи
+                </h1>
+                <div>
+                    <a href="{% url 'users:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Назад к дашборду
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Счётчик задач -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="text-muted">
+                Всего <strong>{{ user_tasks|length }}</strong> {{ user_tasks|length|russian_pluralize:"задача,задачи,задач" }}
+            </div>
+        </div>
+    </div>
+
+    {% if user_tasks %}
+        <div class="row g-3" id="tasks-container">
+            {% for task in user_tasks %}
+                <div class="col-12 task-item" data-status="{{ task.status }}" data-task-id="{{ task.pk }}">
+                    <div class="card shadow-sm border-0 task-card h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title mb-2">
+                                        <a href="{% url 'projects:project_detail' pk=task.project.pk %}" 
+                                           class="text-decoration-none text-dark fw-bold">
+                                            {{ task.title }}
+                                        </a>
+                                    </h5>
+                                    <div class="text-muted small mb-2">
+                                        <i class="fas fa-project-diagram me-1"></i>
+                                        {{ task.project.title }}
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        Создана: {{ task.created_at|date:"d.m.Y" }}
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-column align-items-end gap-2">
+                                    <span class="badge {{ task.get_status_badge_class }} px-3 py-2">
+                                        {{ task.get_status_display }}
+                                    </span>
+                                    <div class="btn-group-vertical d-grid gap-2" style="min-width: 150px;">
+                                        <a href="{% url 'projects:project_detail' pk=task.project.pk %}" 
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-folder-open me-1"></i>Открыть проект
+                                        </a>
+                                        {% if task.status != 'done' %}
+                                            <button class="btn btn-outline-success btn-sm" 
+                                                    onclick="updateTaskStatus({{ task.pk }}, 'completed')">
+                                                <i class="fas fa-check me-1"></i>Завершить
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+    {% else %}
+        <!-- Пустое состояние -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-tasks fa-4x text-muted"></i>
+                        </div>
+                        <h3 class="text-muted mb-3">У вас пока нет активных задач</h3>
+                        <p class="text-muted mb-4">
+                            Задачи появятся здесь, когда вам их назначат в проектах команд.
+                        </p>
+                        <a href="{% url 'users:dashboard' %}" class="btn btn-primary">
+                            <i class="fas fa-arrow-left me-1"></i>Вернуться в кабинет
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+
+<style>
+.task-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.task-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn-group-vertical .btn {
+    border-radius: 0.375rem !important;
+}
+</style>
+{% endblock %}

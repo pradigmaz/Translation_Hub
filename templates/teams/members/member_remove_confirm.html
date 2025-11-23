@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Удаление участника: {{ member_user.username }} - {{ team.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Breadcrumb навигация -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="{% url 'teams:team_detail' team.pk %}">
+          <i class="fas fa-users me-1"></i>{{ team.name }}
+        </a>
+      </li>
+      <li class="breadcrumb-item">
+        <a href="{% url 'teams:team_member_list' team.pk %}">
+          <i class="fas fa-user-friends me-1"></i>Участники
+        </a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">
+        <i class="fas fa-user-times me-1"></i>Удаление участника
+      </li>
+    </ol>
+  </nav>
+
+  <!-- Предупреждение -->
+  <div class="alert alert-warning border-0 shadow-sm mb-4" role="alert">
+    <div class="d-flex align-items-center">
+      <i class="fas fa-exclamation-triangle fs-3 me-3"></i>
+      <div>
+        <h5 class="alert-heading mb-1">Подтверждение удаления</h5>
+        <p class="mb-0">
+          Вы уверены, что хотите удалить участника из команды? Это действие можно будет отменить, добавив участника заново.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Карточка с информацией о пользователе -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-danger text-white">
+      <h5 class="mb-0">
+        <i class="fas fa-user-times me-2"></i>Удаляемый участник
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="d-flex align-items-center mb-3">
+        {% if member_user.avatar %}
+        <img 
+          src="{{ member_user.avatar.url }}" 
+          class="rounded-circle me-3" 
+          width="64" 
+          height="64" 
+          alt="Аватар {{ member_user.username }}"
+          style="object-fit: cover">
+        {% else %}
+        <div 
+          class="rounded-circle d-flex align-items-center justify-content-center me-3"
+          style="width: 64px; height: 64px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+          <i class="fas fa-user text-white fs-3"></i>
+        </div>
+        {% endif %}
+        <div>
+          <h5 class="mb-1">{{ member_user.display_name|default:member_user.username }}</h5>
+          <p class="text-muted mb-0">
+            <i class="fas fa-envelope me-1"></i>{{ member_user.email }}
+          </p>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="row">
+        <div class="col-md-6">
+          <p class="mb-2">
+            <strong><i class="fas fa-calendar-plus me-1"></i>Дата присоединения:</strong><br>
+            <span class="text-muted">{{ membership.joined_at|date:"d.m.Y H:i" }}</span>
+          </p>
+        </div>
+        <div class="col-md-6">
+          <p class="mb-2">
+            <strong><i class="fas fa-tags me-1"></i>Текущие роли:</strong><br>
+            {% if membership.roles.exists %}
+              {% for role in membership.roles.all %}
+                {% if role.name == "Руководитель" %}
+                <span class="badge text-bg-danger rounded-pill">
+                  <i class="fas fa-crown me-1"></i>{{ role.name }}
+                </span>
+                {% elif role.name == "Редактор" %}
+                <span class="badge text-bg-info rounded-pill">
+                  <i class="fas fa-edit me-1"></i>{{ role.name }}
+                </span>
+                {% elif role.name == "Переводчик" %}
+                <span class="badge text-bg-primary rounded-pill">
+                  <i class="fas fa-language me-1"></i>{{ role.name }}
+                </span>
+                {% elif role.name == "Клинер" %}
+                <span class="badge text-bg-success rounded-pill">
+                  <i class="fas fa-broom me-1"></i>{{ role.name }}
+                </span>
+                {% elif role.name == "Тайпер" %}
+                <span class="badge text-bg-warning rounded-pill">
+                  <i class="fas fa-keyboard me-1"></i>{{ role.name }}
+                </span>
+                {% else %}
+                <span class="badge text-bg-secondary rounded-pill">
+                  <i class="fas fa-tag me-1"></i>{{ role.name }}
+                </span>
+                {% endif %}
+              {% endfor %}
+            {% else %}
+              <span class="badge text-bg-light text-dark rounded-pill">
+                <i class="fas fa-user me-1"></i>Без роли
+              </span>
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Форма подтверждения -->
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        
+        <p class="mb-4">
+          <i class="fas fa-info-circle me-1 text-info"></i>
+          После удаления участник потеряет доступ к команде и её проектам. 
+          Вы сможете добавить его обратно в любое время.
+        </p>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash-alt me-2"></i>Да, удалить участника
+          </button>
+          <a href="{% url 'teams:team_member_list' team.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-times me-2"></i>Отмена
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

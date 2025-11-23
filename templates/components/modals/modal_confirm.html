@@ -1,0 +1,18 @@
+<!-- Модальное окно подтверждения с 2 кнопками -->
+{% extends "components/modals/modal_base.html" %}
+
+{% block modal_content %}
+<div class="modal-body p-4 text-center">
+    <h5 class="mb-2">{{ title }}</h5>
+    <p class="mb-3">{{ message }}</p>
+    {% if warning %}<p class="text-muted small mb-0">{{ warning }}</p>{% endif %}
+</div>
+<div class="modal-footer flex-nowrap p-0">
+    <button type="button" class="btn btn-lg btn-link fs-6 text-decoration-none col-6 py-3 m-0 rounded-0 border-end text-danger" id="{{ confirm_btn_id }}">
+        <strong>{{ confirm_text|default:"Да, удалить" }}</strong>
+    </button>
+    <button type="button" class="btn btn-lg btn-link fs-6 text-decoration-none col-6 py-3 m-0 rounded-0" data-bs-dismiss="modal">
+        {{ cancel_text|default:"Отмена" }}
+    </button>
+</div>
+{% endblock %}

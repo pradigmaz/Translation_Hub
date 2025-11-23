@@ -1,0 +1,156 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | {{ site_title|default:"Django site admin" }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Главная</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block extrahead %}
+<link href="{% static 'css/admin-utils.css' %}" rel="stylesheet">
+<script src="{% static 'js/admin-utils.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h2 mb-4">{{ title }}</h1>
+            
+            <!-- Bootstrap Alert для предупреждения -->
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <div>
+                    <strong>Внимание!</strong> Операции управления файлами могут повлиять на работу системы. 
+                    Рекомендуется создать резервную копию перед выполнением критических операций.
+                </div>
+            </div>
+            
+            <!-- Доступные действия -->
+            {% if available_actions %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">Доступные действия</h3>
+                </div>
+                <div class="card-body">
+                    {% for action in available_actions %}
+                    <div class="card mb-3 {% if action.danger %}border-danger{% else %}border-success{% endif %}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ action.title }}</h5>
+                            <p class="card-text text-muted">{{ action.description }}</p>
+                            
+                            <form method="post" class="needs-confirmation {% if action.danger %}dangerous-action{% endif %}" 
+                                  data-action-title="{{ action.title }}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="{{ action.id }}">
+                                
+                                {% if action.has_dry_run %}
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="dry_run_{{ action.id }}" 
+                                           name="dry_run" checked>
+                                    <label class="form-check-label" for="dry_run_{{ action.id }}">
+                                        Тестовый режим (не удалять файлы)
+                                    </label>
+                                </div>
+                                {% endif %}
+                                
+                                <button type="submit" class="btn {% if action.danger %}btn-danger{% else %}btn-success{% endif %}">
+                                    <i class="fas {% if action.danger %}fa-exclamation-triangle{% else %}fa-play{% endif %} me-1"></i>
+                                    Выполнить
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Навигация -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">Навигация</h3>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'admin:file_structure' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-sitemap me-1"></i>Структура файлов
+                        </a>
+                        <a href="{% url 'admin:file_statistics' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-chart-bar me-1"></i>Статистика
+                        </a>
+                        <a href="{% url 'admin:file_diagnostics' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-stethoscope me-1"></i>Диагностика
+                        </a>
+                        <a href="{% url 'admin:file_system_status' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-server me-1"></i>Статус системы
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Быстрые действия через API -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">Быстрые действия</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-success h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Проверить структуру файлов</h5>
+                                    <p class="card-text">Быстрая проверка целостности файловой структуры</p>
+                                    <button data-admin-action="validate-structure" class="btn btn-success">
+                                        <i class="fas fa-check me-1"></i>Проверить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-warning h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Очистить осиротевшие файлы (тест)</h5>
+                                    <p class="card-text">Показать список файлов для удаления без фактического удаления</p>
+                                    <button data-admin-action="cleanup-orphaned" data-dry-run="true" class="btn btn-warning">
+                                        <i class="fas fa-list me-1"></i>Показать список
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-success h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Исправить права доступа</h5>
+                                    <p class="card-text">Установить корректные права доступа для файлов и папок</p>
+                                    <button data-admin-action="fix-permissions" class="btn btn-success">
+                                        <i class="fas fa-wrench me-1"></i>Исправить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Результаты операций -->
+            <div id="operation-results" class="card" style="display: none;">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">Результаты операции</h3>
+                </div>
+                <div class="card-body">
+                    <div id="results-content" class="bg-light p-3 rounded" style="font-family: monospace; font-size: 0.9em; max-height: 300px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript functionality moved to admin-utils.js -->
+{% endblock %}

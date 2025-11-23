@@ -1,0 +1,146 @@
+<!-- templates/base.html -->
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TranslationHub{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Кастомные стили -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <!-- Шапка сайта -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary fs-4" href="{% url 'main_page' %}">TranslationHub</a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-nav me-auto">
+                    <!-- Проекты доступны только через команды -->
+                </div>
+                <div class="navbar-nav ms-auto">
+                    {% if user.is_authenticated %}
+                        <!-- Простой dropdown пользователя -->
+                        {% load form_tags %}
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                {% user_avatar user size="32" css_class="me-2" %}
+                                <span>{{ user.display_name|default:user.username }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <h6 class="dropdown-header">
+                                        <i class="fas fa-user me-2"></i>{{ user.display_name|default:user.username }}
+                                    </h6>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" 
+                                       href="{% url 'users:dashboard' %}">
+                                        <i class="fas fa-tachometer-alt me-2"></i>Дашборд
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.resolver_match.namespace == 'teams' %}active{% endif %}" 
+                                       href="{% url 'teams:team_list' %}">
+                                        <i class="fas fa-users me-2"></i>Команды
+                                        <span id="teams-total-badge" class="badge rounded-pill text-bg-primary ms-1" style="display: none;">0</span>
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item {% if request.resolver_match.url_name == 'tasks' %}active{% endif %}" 
+                                       href="{% url 'users:tasks' %}">
+                                        <i class="fas fa-tasks me-2"></i>Мои задачи
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" 
+                                       href="{% url 'users:profile' %}">
+                                        <i class="fas fa-user-circle me-2"></i>Профиль
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.resolver_match.url_name == 'settings' %}active{% endif %}" 
+                                       href="{% url 'users:settings' %}">
+                                        <i class="fas fa-cog me-2"></i>Настройки
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" action="{% url 'users:logout' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item text-danger" style="border: none; background: none; cursor: pointer; width: 100%; text-align: left;">
+                                            <i class="fas fa-sign-out-alt me-2"></i>Выйти
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <a class="nav-link" href="{% url 'users:login' %}">Войти</a>
+                        <a class="nav-link" href="{% url 'users:register' %}">Регистрация</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toast контейнер для уведомлений -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Основной контент страницы -->
+    <main class="flex-grow-1">
+        {% block content %}
+        <!-- Сюда будет вставляться содержимое из других шаблонов -->
+        {% endblock %}
+    </main>
+
+    <!-- Подвал сайта -->
+    <div class="container">
+        <footer class="py-3 my-4">
+            <ul class="nav justify-content-center border-bottom pb-3 mb-3">
+                <li class="nav-item"><a href="{% url 'main_page' %}" class="nav-link px-2 text-body-secondary">Главная</a></li>
+                <li class="nav-item"><a href="{% url 'docs' %}" class="nav-link px-2 text-body-secondary">Документация</a></li>
+                {% if user.is_authenticated %}
+                    <li class="nav-item"><a href="{% url 'users:dashboard' %}" class="nav-link px-2 text-body-secondary">Дашборд</a></li>
+                    <li class="nav-item"><a href="{% url 'teams:team_list' %}" class="nav-link px-2 text-body-secondary">Команды</a></li>
+                {% endif %}
+                <li class="nav-item"><a href="#" class="nav-link px-2 text-body-secondary">О проекте</a></li>
+            </ul>
+            <p class="text-center text-body-secondary">© 2025 TranslationHub</p>
+        </footer>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Core JS -->
+    <script src="{% static 'js/modules/utils/csrf.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    {% if user.is_authenticated %}
+    <script>
+        window.URLS = {
+            teamsTeamCounts: '{% url "teams:team_counts" %}'
+        };
+    </script>
+    <script src="{% static 'js/modules/ui/counters.js' %}"></script>
+    {% endif %}
+    
+    <!-- Дополнительный JavaScript из дочерних шаблонов -->
+    {% block extra_js %}
+    {% endblock %}
+</body>
+</html>

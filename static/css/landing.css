@@ -1,0 +1,27 @@
+/**
+ * Landing Page Styles
+ * Extracted from templates/main.html inline styles
+ */
+
+/* Hero Section */
+.shadow-2xl {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.min-vh-100 {
+    min-height: 100vh;
+}
+
+/* Project Types Section */
+.bg-gradient-light {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.pt-6 {
+    padding-top: 3rem !important;
+}
+
+/* Workflow Section */
+.workflow-step {
+    position: relative;
+}

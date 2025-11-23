@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load static glossary_tags %}
+
+{% block title %}База знаний - {{ project.title }} - TranslationHub{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="{% url 'teams:team_detail' project.team.id %}">
+          <i class="fas fa-users me-1"></i>{{ project.team.name }}
+        </a>
+      </li>
+      <li class="breadcrumb-item">
+        <a href="{% url 'projects:project_detail' project.id %}">
+          <i class="fas fa-project-diagram me-1"></i>{{ project.title }}
+        </a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">База знаний</li>
+    </ol>
+  </nav>
+
+  <!-- Заголовок -->
+  <div class="row mb-4">
+    <div class="col">
+      <div class="d-flex justify-content-between align-items-center">
+        <h1 class="h2 mb-0">
+          <i class="fas fa-book me-2 text-primary"></i>База знаний
+        </h1>
+        <div class="d-flex align-items-center">
+          <span class="badge bg-secondary me-3">
+            <i class="fas fa-file-alt me-1"></i>{{ total_articles }} статей
+          </span>
+          <span class="badge bg-info me-3">
+            <i class="fas fa-folder me-1"></i>{{ total_materials }} материалов
+          </span>
+          <span class="text-muted small">
+            Статьи создаются администратором
+          </span>
+        </div>
+      </div>
+      <p class="text-muted mt-2 mb-0">
+        Статьи, гайды и материалы проекта "{{ project.title }}"
+      </p>
+    </div>
+  </div>
+
+  <!-- Поиск -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <form method="get" action="">
+        <div class="input-group">
+          <span class="input-group-text">
+            <i class="fas fa-search"></i>
+          </span>
+          <input type="text" class="form-control" name="q" value="{{ request.GET.q }}" placeholder="Поиск статей...">
+          <button class="btn btn-primary" type="submit">Найти</button>
+          {% if request.GET.q %}
+          <a href="{% url 'glossary:glossary_list' project.id %}" class="btn btn-outline-secondary">Сбросить</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Материалы проекта -->
+  {% if project_materials %}
+  <div class="row mb-4">
+    <div class="col">
+      <div class="card border-info">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-folder-open me-2"></i>Материалы проекта
+            <span class="badge bg-light text-dark ms-2">{{ project_materials|length }}</span>
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for material in project_materials %}
+            <div class="col-md-6 col-lg-4 mb-3">
+              <div class="card h-100">
+                <div class="card-body">
+                  <div class="d-flex align-items-start mb-2">
+                    <span class="badge bg-secondary me-2">
+                      {{ material.get_material_type_display }}
+                    </span>
+                  </div>
+                  <h6 class="card-title">
+                    <a href="{% url 'glossary:material_detail' project.id material.id %}" 
+                       class="text-decoration-none">
+                      {{ material.title }}
+                    </a>
+                  </h6>
+                  <p class="card-text text-muted small">
+                    {{ material.content|truncatewords:15 }}
+                  </p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                      <i class="fas fa-user me-1"></i>{{ material.created_by.display_name|default:material.created_by.username }}
+                    </small>
+                    <small class="text-muted">
+                      {{ material.created_at|date:"d.m.Y" }}
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Статьи по категориям -->
+  {% if categories_with_articles %}
+    {% for category_name, data in categories_with_articles.items %}
+    <div class="row mb-4">
+      <div class="col">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+              {{ data.category.content_type|content_type_icon }}
+              {{ category_name }}
+              <span class="badge bg-light text-dark ms-2">{{ data.articles|length }}</span>
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              {% for article in data.articles %}
+              <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100">
+                  <div class="card-body">
+                    <h6 class="card-title">
+                      <a href="{% url 'glossary:glossary_detail' project.id article.id %}" 
+                         class="text-decoration-none">
+                        {{ article.term }}
+                      </a>
+                    </h6>
+                    <p class="card-text text-muted small">
+                      {{ article.definition|truncatewords:15 }}
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small class="text-muted">
+                        <i class="fas fa-user me-1"></i>{{ article.created_by.display_name|default:article.created_by.username }}
+                      </small>
+                      <small class="text-muted">
+                        {{ article.created_at|date:"d.m.Y" }}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% endif %}
+  
+  {% if not categories_with_articles and not project_materials %}
+    <!-- Пустое состояние -->
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <div class="card-body text-center py-5">
+            <i class="fas fa-book-open fa-4x text-muted mb-3"></i>
+            <h3 class="text-muted">Пока нет материалов</h3>
+            <p class="text-muted mb-4">
+              Статьи и материалы для проекта еще не созданы.
+            </p>
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Что будет здесь:</strong>
+              <ul class="list-unstyled mt-2 mb-0">
+                <li>• Материалы проекта (герои, термины, фразы)</li>
+                <li>• Статьи и гайды по переводу</li>
+                <li>• Правила и рекомендации</li>
+                <li>• Полезные советы</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+

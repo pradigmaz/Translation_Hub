@@ -1,0 +1,200 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | {{ site_title|default:"Django site admin" }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Главная</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block extrahead %}
+<link href="{% static 'css/admin-utils.css' %}" rel="stylesheet">
+<script src="{% static 'js/admin-utils.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h2 mb-4">{{ title }}</h1>
+            
+            {% if error %}
+                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <div><strong>Ошибка:</strong> {{ error }}</div>
+                </div>
+            {% else %}
+                <!-- Статистика структуры -->
+                {% if structure_stats %}
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-users me-2"></i>Пользователи
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="display-4 text-primary mb-2">{{ structure_stats.total_users }}</div>
+                                <p class="mb-1">Всего пользователей</p>
+                                <p class="mb-1"><strong>{{ structure_stats.users_with_files }}</strong> с файлами</p>
+                                {% if structure_stats.missing_user_dirs %}
+                                    <p class="text-danger mb-0">
+                                        <strong>{{ structure_stats.missing_user_dirs|length }}</strong> без папок
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-users-cog me-2"></i>Команды
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="display-4 text-primary mb-2">{{ structure_stats.total_teams }}</div>
+                                <p class="mb-1">Всего команд</p>
+                                <p class="mb-1"><strong>{{ structure_stats.teams_with_files }}</strong> с файлами</p>
+                                {% if structure_stats.missing_team_dirs %}
+                                    <p class="text-danger mb-0">
+                                        <strong>{{ structure_stats.missing_team_dirs|length }}</strong> без папок
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-project-diagram me-2"></i>Проекты
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="display-4 text-primary mb-2">{{ structure_stats.total_projects }}</div>
+                                <p class="mb-1">Всего проектов</p>
+                                <p class="mb-1"><strong>{{ structure_stats.projects_with_files }}</strong> с файлами</p>
+                                {% if structure_stats.missing_project_dirs %}
+                                    <p class="text-danger mb-0">
+                                        <strong>{{ structure_stats.missing_project_dirs|length }}</strong> без папок
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Предупреждения о недостающих папках -->
+                {% if structure_stats.missing_user_dirs %}
+                <div class="alert alert-warning" role="alert">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Недостающие папки пользователей
+                    </h5>
+                    <ul class="mb-0">
+                        {% for missing in structure_stats.missing_user_dirs|slice:":10" %}
+                            <li>{{ missing.username }} (ID: {{ missing.id }}) - <code>{{ missing.path }}</code></li>
+                        {% endfor %}
+                        {% if structure_stats.missing_user_dirs|length > 10 %}
+                            <li>... и еще {{ structure_stats.missing_user_dirs|length|add:"-10" }}</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if structure_stats.missing_team_dirs %}
+                <div class="alert alert-warning" role="alert">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Недостающие папки команд
+                    </h5>
+                    <ul class="mb-0">
+                        {% for missing in structure_stats.missing_team_dirs|slice:":10" %}
+                            <li>{{ missing.name }} (ID: {{ missing.id }}) - <code>{{ missing.path }}</code></li>
+                        {% endfor %}
+                        {% if structure_stats.missing_team_dirs|length > 10 %}
+                            <li>... и еще {{ structure_stats.missing_team_dirs|length|add:"-10" }}</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if structure_stats.missing_project_dirs %}
+                <div class="alert alert-warning" role="alert">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Недостающие папки проектов
+                    </h5>
+                    <ul class="mb-0">
+                        {% for missing in structure_stats.missing_project_dirs|slice:":10" %}
+                            <li>{{ missing.title }} ({{ missing.team }}) - <code>{{ missing.path }}</code></li>
+                        {% endfor %}
+                        {% if structure_stats.missing_project_dirs|length > 10 %}
+                            <li>... и еще {{ structure_stats.missing_project_dirs|length|add:"-10" }}</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <!-- Дерево файлов -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-sitemap me-2"></i>Структура файлов
+                        </h5>
+                        <button data-admin-action="refresh-tree" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-sync-alt me-1"></i>Обновить
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="file-tree" class="bg-light p-3 rounded" 
+                             style="font-family: monospace; max-height: 600px; overflow-y: auto;">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Загрузка структуры файлов...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Действия -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Действия</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'admin:file_statistics' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-chart-bar me-1"></i>Статистика файлов
+                            </a>
+                            <a href="{% url 'admin:file_diagnostics' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-stethoscope me-1"></i>Диагностика
+                            </a>
+                            <a href="{% url 'admin:file_management' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-cogs me-1"></i>Управление файлами
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript functionality moved to admin-utils.js -->
+<script>
+// Initialize file tree data for admin-utils.js
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.adminUtils && {{ file_tree_json|safe }}) {
+        const treeContainer = document.getElementById('file-tree');
+        if (treeContainer) {
+            treeContainer.innerHTML = window.adminUtils.renderFileTree({{ file_tree_json|safe }});
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+  {% if action == 'create' %}Добавить материал{% else %}Редактировать материал{% endif %} - {{ project.title }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="{% url 'teams:team_detail' project.team.id %}">
+          <i class="fas fa-users me-1"></i>{{ project.team.name }}
+        </a>
+      </li>
+      <li class="breadcrumb-item">
+        <a href="{% url 'projects:project_detail' project.pk %}">
+          {{ project.title }}
+        </a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">
+        {% if action == 'create' %}Добавить материал{% else %}Редактировать материал{% endif %}
+      </li>
+    </ol>
+  </nav>
+
+  <!-- Заголовок -->
+  <div class="row mb-4">
+    <div class="col">
+      <h2>
+        <i class="fas fa-book-open me-2 text-info"></i>
+        {% if action == 'create' %}Добавить материал{% else %}Редактировать материал{% endif %}
+      </h2>
+      <p class="text-muted">
+        Добавьте описания героев, термины, фразы или заметки для команды
+      </p>
+    </div>
+  </div>
+
+  <!-- Форма -->
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+            
+            <!-- Название -->
+            <div class="mb-3">
+              <label for="{{ form.title.id_for_label }}" class="form-label">
+                Название <span class="text-danger">*</span>
+              </label>
+              {{ form.title }}
+              {% if form.title.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.title.errors.0 }}
+                </div>
+              {% endif %}
+              <small class="form-text text-muted">
+                Например: "Танджиро Камадо", "Дыхательные техники", "Крылатые фразы"
+              </small>
+            </div>
+
+            <!-- Тип материала -->
+            <div class="mb-3">
+              <label for="{{ form.material_type.id_for_label }}" class="form-label">
+                Тип материала <span class="text-danger">*</span>
+              </label>
+              {{ form.material_type }}
+              {% if form.material_type.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.material_type.errors.0 }}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Содержимое -->
+            <div class="mb-3">
+              <label for="{{ form.content.id_for_label }}" class="form-label">
+                Содержимое <span class="text-danger">*</span>
+              </label>
+              {{ form.content }}
+              {% if form.content.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.content.errors.0 }}
+                </div>
+              {% endif %}
+              <small class="form-text text-muted">
+                Подробное описание, термины, фразы и т.п.
+              </small>
+            </div>
+
+            <!-- Порядок сортировки -->
+            <div class="mb-3">
+              <label for="{{ form.order.id_for_label }}" class="form-label">
+                Порядок сортировки
+              </label>
+              {{ form.order }}
+              {% if form.order.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.order.errors.0 }}
+                </div>
+              {% endif %}
+              <small class="form-text text-muted">
+                Меньшее число = выше в списке (по умолчанию 0)
+              </small>
+            </div>
+
+            <!-- Кнопки -->
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i>
+                {% if action == 'create' %}Создать{% else %}Сохранить{% endif %}
+              </button>
+              <a href="{% url 'projects:project_detail' project.pk %}" 
+                 class="btn btn-outline-secondary">
+                <i class="fas fa-times me-2"></i>Отмена
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Подсказки -->
+    <div class="col-lg-4">
+      <div class="card bg-light">
+        <div class="card-header">
+          <h6 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>Примеры материалов
+          </h6>
+        </div>
+        <div class="card-body">
+          <h6 class="text-info">Описание героя</h6>
+          <p class="small text-muted">
+            Имя, возраст, характер, способности, история персонажа
+          </p>
+
+          <h6 class="text-info mt-3">Термин/Словарь</h6>
+          <p class="small text-muted">
+            Специфические термины мира: "Дыхательные техники", "Кровавая магия"
+          </p>
+
+          <h6 class="text-info mt-3">Фраза/Выражение</h6>
+          <p class="small text-muted">
+            Крылатые фразы, особые обращения, устойчивые выражения
+          </p>
+
+          <h6 class="text-info mt-3">Заметка</h6>
+          <p class="small text-muted">
+            Общие заметки, напоминания, важная информация для команды
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
